@@ -9,6 +9,7 @@ const links = [
   { href: "/app/habits", label: "To-do & habits" },
   { href: "/app/calc", label: "Gas & Commute" },
   { href: "/app/ranks", label: "Ranking" },
+  { href: "/app/sakay", label: "🗺️ Map Guide" },
 ];
 
 export function AppShell({
