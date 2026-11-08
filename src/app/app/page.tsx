@@ -75,6 +75,11 @@ else greeting = "Magandang Gabi";
           <p className="text-3xl font-serif font-normal mt-2">₱{totalToday.toFixed(2)}</p>
           <p className="text-xs text-gray-500 mt-1">Gas ₱{gasTotal.toFixed(0)} • Commute ₱{commuteTotal.toFixed(0)}</p>
         </Link>
+        <Link href="/map-guide" className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition block">
+  <p className="text-xs text-gray-500">Map Guide</p>
+  <p className="text-3xl font-serif font-normal mt-2">Find Route</p>
+  <p className="text-xs text-gray-500 mt-1">SM North → SM MOA • ~45 mins</p>
+</Link>
       </div>
     </div>
   );
