@@ -6,10 +6,14 @@ export default function Page() {
   const [todayStr, setTodayStr] = useState("");
   const [gasTotal, setGasTotal] = useState(0);
   const [commuteTotal, setCommuteTotal] = useState(0);
+  const [displayName, setDisplayName] = useState("Kaibigan");
 
   useEffect(() => {
     const today = new Date().toLocaleDateString();
     setTodayStr(today);
+    fetch("/api/auth/me").then(r => r.json()).then(d => {
+      if (d?.user?.name) setDisplayName(d.user.name);
+    }).catch(() => {});
     try {
       const g = localStorage.getItem("gas_simple");
       const c = localStorage.getItem("commute");
@@ -31,7 +35,7 @@ export default function Page() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-serif font-normal tracking-tight">Kumusta, Ja?</h1>
+        <h1 className="text-4xl font-serif font-normal tracking-tight">Kumusta, {displayName}?</h1>
         <p className="text-sm text-gray-500 mt-1">Your everyday tools are ready.</p>
       </div>
 
