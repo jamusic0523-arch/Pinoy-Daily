@@ -32,10 +32,18 @@ export default function Page() {
 
   const totalToday = gasTotal + commuteTotal;
 
+  const hour = new Date().getHours();
+let greeting = "Kumusta";
+if (hour < 5) greeting = "Magandang Gabi";
+else if (hour < 12) greeting = "Magandang Umaga";
+else if (hour < 13) greeting = "Magandang Tanghali";
+else if (hour < 18) greeting = "Magandang Hapon";
+else greeting = "Magandang Gabi";
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-serif font-normal tracking-tight">Kumusta, {displayName}?</h1>
+      <h1 className="text-4xl font-serif font-normal tracking-tight">{greeting}, {displayName}?</h1>
         <p className="text-sm text-gray-500 mt-1">Your everyday tools are ready.</p>
       </div>
 
