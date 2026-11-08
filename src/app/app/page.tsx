@@ -43,7 +43,7 @@ else greeting = "Magandang Gabi";
   return (
     <div className="space-y-6">
       <div>
-      <h1 className="text-4xl font-serif font-normal tracking-tight">{greeting}, {displayName}?</h1>
+      <h1 className="text-4xl font-serif font-normal tracking-tight">{greeting}, {displayName}.</h1>
         <p className="text-sm text-gray-500 mt-1">Your everyday tools are ready.</p>
       </div>
 
