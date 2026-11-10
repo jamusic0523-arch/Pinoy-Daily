@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
@@ -88,12 +88,13 @@ function getSakayDetails(fromName: string, toName: string, distKm: number) {
 export default function SakayPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [beginnerMode, setBeginnerMode] = useState(true);
 
-  // FIX MAPA: i-load yung Leaflet CSS, kaya putol-putol kanina
+  // Load Leaflet styles and marker icons on the client.
   useEffect(() => {
     import("leaflet/dist/leaflet.css");
     import("leaflet").then((L) => {
-      // @ts-ignore
+      // @ts-ignore - Leaflet's default icon URL typing is incomplete here.
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -111,7 +112,11 @@ export default function SakayPage() {
     const R = 6371;
     const dLat = ((toPlace.lat - fromPlace.lat) * Math.PI) / 180;
     const dLng = ((toPlace.lng - fromPlace.lng) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos((fromPlace.lat * Math.PI) / 180) * Math.cos((toPlace.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((fromPlace.lat * Math.PI) / 180) *
+        Math.cos((toPlace.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, [from, to, fromPlace, toPlace]);
 
@@ -119,133 +124,254 @@ export default function SakayPage() {
 
   const routes = useMemo(() => {
     if (!from || !to) return [];
+
     const d = getSakayDetails(from, to, distKm);
     const isNorth = toPlace.lat > fromPlace.lat;
     const dirText = isNorth ? "Pa-north • Pauwi" : "Pa-south • Paalis";
     const traffic = isNorth ? 1.12 : 0.95;
+
     if (distKm < 3) {
       return [
-        { id: "mura", title: "💰 Tipid Mode", price: 15, time: Math.round(baseMin * 1.4 + 5), rides: "1 sakay", tag: "JEEP", sign: d.jeep, note: dirText },
-        { id: "mabilis", title: "⚡ Express Mode", price: 30, time: Math.round(baseMin * 0.9 + 2), rides: "1 sakay", tag: "TRICYCLE", sign: "Tricycle / E-trike", note: "Diretso, walang hintay" },
-        { id: "konti", title: "🚌 Isang Sakay Lang", price: 15, time: Math.round(baseMin * 1.2 + 3), rides: "1 sakay", tag: "JEEP", sign: d.jeep, note: `Isang jeep lang • ${dirText}` },
+        {
+          id: "mura",
+          title: "💰 Tipid Mode",
+          price: 15,
+          time: Math.round(baseMin * 1.4 + 5),
+          rides: "1 sakay",
+          tag: "JEEP",
+          vehicle: "Jeepney",
+          sign: d.jeep,
+          note: dirText,
+          steps: [
+            "Pumunta sa loading area na malapit sa pinanggalingan mo.",
+            `Hanapin ang jeep na may karatulang "${d.jeep}".`,
+            "Bago sumakay, itanong sa driver kung dadaan ito sa iyong bababaan.",
+            `Sabihin ang destination mo: ${to}. Magtanong kung saan pinakamainam bumaba.`,
+          ],
+        },
+        {
+          id: "mabilis",
+          title: "⚡ Express Mode",
+          price: 30,
+          time: Math.round(baseMin * 0.9 + 2),
+          rides: "1 sakay",
+          tag: "TRICYCLE",
+          vehicle: "Tricycle / E-trike",
+          sign: "Walang standard na karatula",
+          note: "Diretso, walang hintay",
+          steps: [
+            "Humanap ng legal na tricycle terminal o pila.",
+            "Sabihin ang eksaktong destination at itanong muna ang pamasahe.",
+            "Kumpirmahin kung ihahatid ka mismo sa destination.",
+          ],
+        },
+        {
+          id: "konti",
+          title: "🚌 Isang Sakay Lang",
+          price: 15,
+          time: Math.round(baseMin * 1.2 + 3),
+          rides: "1 sakay",
+          tag: "JEEP",
+          vehicle: "Jeepney",
+          sign: d.jeep,
+          note: `Isang jeep lang • ${dirText}`,
+          steps: [
+            "Pumunta sa sakayan at tingnan ang karatula sa harap ng jeep.",
+            `Hanapin ang "${d.jeep}" at kumpirmahin sa driver ang bababaan.`,
+            `Sabihin na papunta ka sa ${to} at itanong kung saan ka dapat bumaba.`,
+          ],
+        },
       ];
     }
+
     if (distKm < 8) {
       return [
-        { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm, "jeep")), time: Math.round(baseMin * 1.3 + 8), rides: "1 sakay", tag: "JEEP", sign: d.jeep, note: dirText },
-        { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm, "bus")), time: Math.round(baseMin * 0.9 + 4), rides: "1 sakay", tag: "BUS", sign: d.bus, note: "Isang bus lang" },
-        { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 5), time: Math.round(baseMin * 1.1 + 3), rides: "1 sakay", tag: "BUS", sign: d.bus, note: `Walang lipat • ${dirText}` },
+        {
+          id: "mura",
+          title: "💰 Tipid Mode",
+          price: Math.round(calcFare(distKm, "jeep")),
+          time: Math.round(baseMin * 1.3 + 8),
+          rides: "1 sakay",
+          tag: "JEEP",
+          vehicle: "Jeepney",
+          sign: d.jeep,
+          note: dirText,
+          steps: [
+            "Pumunta sa loading area ng jeep sa direksyong kailangan mo.",
+            `Hanapin ang karatulang "${d.jeep}" sa harap o windshield ng jeep.`,
+            "Itanong sa driver kung dadaan sa destination bago sumakay.",
+            `Sabihin na bababa ka sa ${to}; magtanong kung anong landmark ang dapat bantayan.`,
+          ],
+        },
+        {
+          id: "mabilis",
+          title: "⚡ Express Mode",
+          price: Math.round(calcFare(distKm, "bus")),
+          time: Math.round(baseMin * 0.9 + 4),
+          rides: "1 sakay",
+          tag: "BUS",
+          vehicle: "Bus",
+          sign: d.bus,
+          note: "Isang bus lang",
+          steps: [
+            "Pumunta sa tamang bus stop o terminal; huwag sumakay sa gitna ng kalsada.",
+            `Basahin ang destination sign sa harap ng bus: "${d.bus}".`,
+            "Kumpirmahin sa konduktor o driver kung daraan sa destination mo.",
+            `Sabihin na bababa ka malapit sa ${to} at humingi ng paalala bago ang stop.`,
+          ],
+        },
+        {
+          id: "konti",
+          title: "🚌 Isang Sakay Lang",
+          price: Math.round(calcFare(distKm, "bus") + 5),
+          time: Math.round(baseMin * 1.1 + 3),
+          rides: "1 sakay",
+          tag: "BUS",
+          vehicle: "Bus",
+          sign: d.bus,
+          note: `Walang lipat • ${dirText}`,
+          steps: [
+            "Pumunta sa bus stop na may sakayan papunta sa direksyon mo.",
+            `Hanapin ang bus na may karatulang "${d.bus}".`,
+            "I-confirm sa konduktor ang bababaan at kung kailangan ng beep card o cash.",
+          ],
+        },
       ];
     }
+
     return [
-      { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt")), time: Math.round((baseMin * 1.35 + 12) * traffic), rides: "2 sakay", tag: "JEEP + TRAIN", sign: `${d.jeep} → ${d.train}`, note: dirText },
-      { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus")), time: Math.round((baseMin * 0.85 + 5) * traffic), rides: "2 sakay", tag: "TRAIN + BUS", sign: `${d.train} → ${d.bus}`, note: "Via EDSA" },
-      { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 10), time: Math.round((baseMin * 1.1 + 3) * traffic), rides: "1 sakay", tag: "BUS", sign: d.bus, note: dirText },
+      {
+        id: "mura",
+        title: "💰 Tipid Mode",
+        price: Math.round(calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt")),
+        time: Math.round((baseMin * 1.35 + 12) * traffic),
+        rides: "2 sakay",
+        tag: "JEEP + TRAIN",
+        vehicle: "Jeepney + Train",
+        sign: `${d.jeep} → ${d.train}`,
+        note: dirText,
+        steps: [
+          `Unang sakay: hanapin ang jeep na may karatulang "${d.jeep}".`,
+          "Kumpirmahin sa driver kung saan pinakamalapit na babaan para sa transfer.",
+          `Sumunod na sakay: ${d.train}. Sundin ang station signs at huwag magmadali sa paglipat.`,
+          `Pagdating sa huling bahagi ng biyahe, sundin ang directions papuntang ${to}.`,
+        ],
+      },
+      {
+        id: "mabilis",
+        title: "⚡ Express Mode",
+        price: Math.round(calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus")),
+        time: Math.round((baseMin * 0.85 + 5) * traffic),
+        rides: "2 sakay",
+        tag: "TRAIN + BUS",
+        vehicle: "Train + Bus",
+        sign: `${d.train} → ${d.bus}`,
+        note: "Via EDSA",
+        steps: [
+          `Unang sakay: sundin ang station directions para sa ${d.train}.`,
+          "Bumaba sa tamang transfer station at sundin ang exit/transfer signs.",
+          `Ikalawang sakay: hanapin ang bus na may karatulang "${d.bus}".`,
+          `Kumpirmahin sa konduktor kung saan bababa para sa ${to}.`,
+        ],
+      },
+      {
+        id: "konti",
+        title: "🚌 Isang Sakay Lang",
+        price: Math.round(calcFare(distKm, "bus") + 10),
+        time: Math.round((baseMin * 1.1 + 3) * traffic),
+        rides: "1 sakay",
+        tag: "BUS",
+        vehicle: "Bus",
+        sign: d.bus,
+        note: dirText,
+        steps: [
+          "Pumunta sa tamang bus stop o terminal.",
+          `Hanapin ang bus na may karatulang "${d.bus}".`,
+          "Kumpirmahin muna sa konduktor kung diretso ito sa destination mo.",
+          `Sabihin na bababa ka sa ${to} at humingi ng landmark o stop reminder.`,
+        ],
+      },
     ];
   }, [distKm, baseMin, from, to, fromPlace, toPlace]);
 
-  const center: [number, number] = [(fromPlace.lat + toPlace.lat) / 2, (fromPlace.lng + toPlace.lng) / 2];
+  const center: [number, number] = [
+    (fromPlace.lat + toPlace.lat) / 2,
+    (fromPlace.lng + toPlace.lng) / 2,
+  ];
+
+  const inputStyle: CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "14px 15px",
+    borderRadius: 12,
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    color: "#111827",
+    fontSize: 15,
+    outlineColor: "#16a34a",
+  };
+
+  const suggestionStyle: CSSProperties = {
+    padding: "12px 14px",
+    background: "#fff",
+    borderBottom: "1px solid #f1f5f9",
+    cursor: "pointer",
+    color: "#1f2937",
+    fontSize: 14,
+  };
 
   return (
-    <main className="sakay-page">
-      <style jsx>{`
-        .sakay-page {
-          width: 100%;
-          max-width: 1180px;
-          margin: 0 auto;
-          padding: clamp(16px, 3vw, 32px);
-          color: #17211b;
-          box-sizing: border-box;
-        }
-        .page-heading { margin-bottom: 22px; }
-        .page-heading h1 { margin: 0; font-size: clamp(25px, 3vw, 34px); font-weight: 800; letter-spacing: -0.04em; }
-        .page-heading p { margin: 7px 0 0; color: #647067; font-size: 14px; }
-        .search-panel {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-          gap: 14px;
-          padding: 18px;
-          margin-bottom: 18px;
-          border: 1px solid #e5ebe6;
-          border-radius: 18px;
-          background: #fff;
-          box-shadow: 0 8px 24px rgba(20, 50, 30, .05);
-        }
-        .field { min-width: 0; position: relative; }
-        .field label { display: block; margin: 0 0 7px; font-size: 12px; font-weight: 700; color: #526057; }
-        .field input {
-          display: block; width: 100%; min-height: 48px; box-sizing: border-box;
-          padding: 12px 14px; border: 1px solid #dce5de; border-radius: 11px;
-          background: #fbfdfb; color: #17211b; font: inherit; outline: none;
-        }
-        .field input:focus { border-color: #198754; box-shadow: 0 0 0 3px rgba(25,135,84,.12); }
-        .suggestions {
-          position: absolute; z-index: 1000; top: calc(100% + 5px); left: 0; right: 0;
-          overflow: hidden; border: 1px solid #e2e9e3; border-radius: 12px;
-          background: white; box-shadow: 0 12px 28px rgba(0,0,0,.12);
-        }
-        .suggestion {
-          width: 100%; display: block; padding: 12px 14px; border: 0;
-          border-bottom: 1px solid #f0f2f0; background: #fff; color: #26332a;
-          text-align: left; cursor: pointer; font: inherit;
-        }
-        .suggestion:last-child { border-bottom: 0; }
-        .suggestion:hover { background: #f2f8f3; }
-        .results-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-          gap: 18px;
-          align-items: start;
-        }
-        .map-panel {
-          height: clamp(320px, 43vw, 520px);
-          min-width: 0; overflow: hidden; border: 1px solid #e3e9e4;
-          border-radius: 18px; background: #eef3ef;
-        }
-        .route-list { display: grid; gap: 12px; min-width: 0; }
-        .route-card {
-          padding: 16px; border: 1px solid #e5ebe6; border-radius: 16px;
-          background: #fff; box-shadow: 0 5px 18px rgba(20,50,30,.04);
-        }
-        .route-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .route-title { font-size: 15px; font-weight: 750; }
-        .route-tag { flex: 0 0 auto; font-size: 10px; font-weight: 800; letter-spacing: .04em;
-          color: #246b43; background: #eaf5ed; padding: 5px 9px; border-radius: 99px; }
-        .route-meta { margin-top: 10px; font-size: 14px; font-weight: 700; color: #26332a; }
-        .route-sign { margin-top: 9px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
-        .route-note { margin-top: 5px; color: #748078; font-size: 12px; line-height: 1.5; }
-        .distance-note { margin: 0 0 12px; color: #4c5c51; font-size: 13px; font-weight: 650; }
-        .empty-state {
-          padding: 24px; border: 1px dashed #cbd8ce; border-radius: 16px;
-          background: #f8fbf8; color: #647067; text-align: center; font-size: 14px;
-        }
-        @media (max-width: 600px) {
-          .sakay-page { padding: 14px; }
-          .search-panel { padding: 14px; gap: 12px; border-radius: 15px; }
-          .map-panel { height: 360px; }
-          .route-card { padding: 14px; }
-        }
-      `}</style>
-
-      <header className="page-heading">
-        <h1>🗺️ Sakay Maps</h1>
-        <p>Hanapin ang biyahe mo sa Metro Manila.</p>
+    <main
+      style={{
+        width: "100%",
+        maxWidth: 1180,
+        margin: "0 auto",
+        padding: "clamp(14px, 3vw, 28px)",
+        boxSizing: "border-box",
+        color: "#111827",
+      }}
+    >
+      <header style={{ marginBottom: 22 }}>
+        <div style={{ color: "#15803d", fontWeight: 800, fontSize: 12, letterSpacing: 1.4 }}>
+          PINOY DAILY • COMMUTE COMPANION
+        </div>
+        <h1 style={{ fontSize: "clamp(27px, 4vw, 38px)", lineHeight: 1.1, margin: "8px 0" }}>
+          🗺️ Sakay Maps
+        </h1>
+        <p style={{ color: "#64748b", margin: 0, lineHeight: 1.6, maxWidth: 680 }}>
+          Hindi sigurado kung anong sasakyan? Hanapin ang ruta at alamin kung anong
+          karatula ang dapat mong tingnan sa harap ng jeep o bus.
+        </p>
       </header>
 
-      <section className="search-panel" aria-label="Route search">
-        <div className="field">
-          <label htmlFor="sakay-from">📍 GALING SA</label>
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+          gap: 12,
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 18,
+          padding: 16,
+          marginBottom: 18,
+        }}
+      >
+        <div style={{ position: "relative", minWidth: 0 }}>
+          <label htmlFor="sakay-from" style={{ display: "block", fontWeight: 700, marginBottom: 7, fontSize: 13 }}>
+            📍 SAAN KA GALING?
+          </label>
           <input
             id="sakay-from"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            placeholder="Saan ka manggagaling? Hal. FEU Manila"
+            placeholder="Hal. FEU Manila"
             autoComplete="off"
+            style={inputStyle}
           />
-          {from && PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).length > 0 && (
-            <div className="suggestions">
-              {PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).map(p => (
-                <button type="button" className="suggestion" key={p.name} onClick={() => setFrom(p.name)}>
+          {from && PLACES.filter((p) => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).length > 0 && (
+            <div style={{ position: "absolute", zIndex: 1000, top: "100%", left: 0, right: 0, marginTop: 4, border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 28px rgba(15,23,42,.12)" }}>
+              {PLACES.filter((p) => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).map((p) => (
+                <button key={p.name} type="button" onClick={() => setFrom(p.name)} style={{ ...suggestionStyle, width: "100%", textAlign: "left" }}>
                   📍 {p.name}
                 </button>
               ))}
@@ -253,19 +379,22 @@ export default function SakayPage() {
           )}
         </div>
 
-        <div className="field">
-          <label htmlFor="sakay-to">🏁 PAPUNTA SA</label>
+        <div style={{ position: "relative", minWidth: 0 }}>
+          <label htmlFor="sakay-to" style={{ display: "block", fontWeight: 700, marginBottom: 7, fontSize: 13 }}>
+            🏁 SAAN KA PUPUNTA?
+          </label>
           <input
             id="sakay-to"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="Saan ka pupunta? Hal. UE Manila - Recto"
+            placeholder="Hal. UE Manila - Recto"
             autoComplete="off"
+            style={inputStyle}
           />
-          {to && PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).length > 0 && (
-            <div className="suggestions">
-              {PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).map(p => (
-                <button type="button" className="suggestion" key={p.name} onClick={() => setTo(p.name)}>
+          {to && PLACES.filter((p) => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).length > 0 && (
+            <div style={{ position: "absolute", zIndex: 1000, top: "100%", left: 0, right: 0, marginTop: 4, border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 28px rgba(15,23,42,.12)" }}>
+              {PLACES.filter((p) => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).map((p) => (
+                <button key={p.name} type="button" onClick={() => setTo(p.name)} style={{ ...suggestionStyle, width: "100%", textAlign: "left" }}>
                   🏁 {p.name}
                 </button>
               ))}
@@ -274,60 +403,129 @@ export default function SakayPage() {
         </div>
       </section>
 
-      {from && to ? (
-        <>
-          <p className="distance-note">
-            📏 Tinatayang tuwid na distansya: {distKm.toFixed(1)} km
-            {" • "}
-            {toPlace.lat > fromPlace.lat ? "Pa-north" : "Pa-south"}
-          </p>
-
-          <section className="results-grid" aria-label="Route results">
-            <div className="map-panel">
-              <MapContainer
-                key={`${from}-${to}`}
-                center={center}
-                zoom={14}
-                style={{ height: "100%", width: "100%" }}
-                scrollWheelZoom={false}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[fromPlace.lat, fromPlace.lng]}>
-                  <Popup>📍 {from}</Popup>
-                </Marker>
-                <Marker position={[toPlace.lat, toPlace.lng]}>
-                  <Popup>🏁 {to}</Popup>
-                </Marker>
-                <Polyline
-                  positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]}
-                  color="#198754"
-                  weight={4}
-                />
-              </MapContainer>
-            </div>
-
-            <div className="route-list">
-              {routes.map((r) => (
-                <article className="route-card" key={r.id}>
-                  <div className="route-top">
-                    <span className="route-title">{r.title}</span>
-                    <span className="route-tag">{r.tag}</span>
-                  </div>
-                  <div className="route-meta">₱{r.price} • {r.time} min • {r.rides}</div>
-                  <div className="route-sign">🪧 Karatula / ruta: <b>{r.sign}</b></div>
-                  <div className="route-note">{r.note}</div>
-                </article>
-              ))}
-              <p className="route-note">
-                Paalala: mga paunang estimate lamang ang pamasahe at oras. I-verify ang aktuwal na ruta at sakayan bago bumiyahe.
-              </p>
-            </div>
-          </section>
-        </>
-      ) : (
-        <div className="empty-state">
-          Piliin ang pinanggalingan at destination para makita ang mapa at mga posibleng sakay.
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: "#64748b" }}>
+          {from && to ? `📏 Tinatayang tuwid na distansya: ${distKm.toFixed(1)} km` : "Pumili ng pinanggalingan at pupuntahan para makita ang gabay."}
         </div>
+        <button
+          type="button"
+          onClick={() => setBeginnerMode((value) => !value)}
+          aria-pressed={beginnerMode}
+          style={{
+            border: "1px solid #bbf7d0",
+            background: beginnerMode ? "#dcfce7" : "#fff",
+            color: "#166534",
+            borderRadius: 999,
+            padding: "9px 13px",
+            fontWeight: 700,
+            cursor: "pointer",
+            fontSize: 13,
+          }}
+        >
+          {beginnerMode ? "✓ Beginner Guide ON" : "Beginner Guide OFF"}
+        </button>
+      </div>
+
+      {from && to && (
+        <>
+          {from === to ? (
+            <div style={{ padding: 16, borderRadius: 14, background: "#fff7ed", color: "#9a3412", marginBottom: 16 }}>
+              Magkaiba dapat ang pinanggalingan at destination mo.
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+                  gap: 18,
+                  alignItems: "start",
+                }}
+              >
+                <section style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 9, alignItems: "center" }}>
+                    <h2 style={{ fontSize: 17, margin: 0 }}>🧭 Route Map</h2>
+                    <span style={{ color: "#64748b", fontSize: 12 }}>Origin → Destination</span>
+                  </div>
+                  <div style={{ height: "clamp(280px, 42vw, 430px)", borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0", background: "#e2e8f0" }}>
+                    <MapContainer key={`${from}-${to}`} center={center} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[fromPlace.lat, fromPlace.lng]}><Popup>📍 {from}</Popup></Marker>
+                      <Marker position={[toPlace.lat, toPlace.lng]}><Popup>🏁 {to}</Popup></Marker>
+                      <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} color="#198754" weight={4} />
+                    </MapContainer>
+                  </div>
+                  <p style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b", marginTop: 8 }}>
+                    Paalala: tuwid na linya lamang ang ipinapakita sa mapa, hindi aktuwal na daan o eksaktong sakayan.
+                  </p>
+                </section>
+
+                <section style={{ minWidth: 0 }}>
+                  <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>🚍 Mga posibleng biyahe</h2>
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {routes.map((r) => (
+                      <article key={r.id} style={{ border: "1px solid #e2e8f0", borderRadius: 16, padding: 15, background: "#fff", boxShadow: "0 4px 14px rgba(15,23,42,.04)", minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                          <div>
+                            <h3 style={{ fontSize: 16, margin: "0 0 5px" }}>{r.title}</h3>
+                            <span style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: .5, color: "#166534", background: "#dcfce7", padding: "5px 8px", borderRadius: 999 }}>
+                              {r.tag}
+                            </span>
+                          </div>
+                          <div style={{ textAlign: "right", fontSize: 13, color: "#475569" }}>
+                            <strong style={{ display: "block", color: "#111827", fontSize: 17 }}>₱{r.price}</strong>
+                            ~{r.time} min • {r.rides}
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: 14, borderRadius: 12, padding: 12, background: "#111827", color: "#fff" }}>
+                          <div style={{ color: "#cbd5e1", fontSize: 10, fontWeight: 800, letterSpacing: 1.1, marginBottom: 7 }}>
+                            HANAPIN SA HARAP NG {r.vehicle.toUpperCase()}
+                          </div>
+                          <div style={{ fontSize: "clamp(17px, 3vw, 23px)", lineHeight: 1.3, fontWeight: 900, overflowWrap: "anywhere" }}>
+                            {r.sign}
+                          </div>
+                          <div style={{ fontSize: 10, color: "#cbd5e1", marginTop: 8 }}>
+                            Sample text reference • i-confirm ang ruta sa driver o konduktor.
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: 12, fontSize: 13, color: "#475569" }}>
+                          <strong style={{ color: "#111827" }}>Direksyon:</strong> {r.note}
+                        </div>
+
+                        {beginnerMode && (
+                          <div style={{ marginTop: 13, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
+                            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: "#166534" }}>
+                              👣 Paano ito sakyan?
+                            </div>
+                            <ol style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 7, color: "#334155", fontSize: 13, lineHeight: 1.5 }}>
+                              {r.steps.map((step, index) => <li key={index}>{step}</li>)}
+                            </ol>
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <aside style={{ marginTop: 18, border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 14, padding: 14, color: "#78350f", fontSize: 12, lineHeight: 1.6 }}>
+                <strong>Importanteng paalala:</strong> Ang mga ruta, karatula, pamasahe, at oras dito ay generated estimates mula sa kasalukuyang sample logic ng app. Hindi pa ito verified na live route information. Bago sumakay, basahin ang karatula sa harap ng sasakyan at kumpirmahin sa driver o konduktor kung dadaan ito sa iyong destination.
+              </aside>
+            </>
+          )}
+        </>
+      )}
+
+      {!from && !to && (
+        <section style={{ border: "1px dashed #cbd5e1", borderRadius: 18, padding: "clamp(22px, 5vw, 38px)", textAlign: "center", background: "#f8fafc" }}>
+          <div style={{ fontSize: 38, marginBottom: 8 }}>🚌</div>
+          <h2 style={{ margin: "0 0 8px", fontSize: 19 }}>First time mag-commute?</h2>
+          <p style={{ margin: "0 auto", maxWidth: 460, color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
+            Ilagay ang pinanggalingan at pupuntahan mo. Ipapakita namin ang mga posibleng sasakyan at ang karatulang dapat mong hanapin.
+          </p>
+        </section>
       )}
     </main>
   );
