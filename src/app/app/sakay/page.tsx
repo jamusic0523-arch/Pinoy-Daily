@@ -147,59 +147,188 @@ export default function SakayPage() {
   const center: [number, number] = [(fromPlace.lat + toPlace.lat) / 2, (fromPlace.lng + toPlace.lng) / 2];
 
   return (
-    <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: "bold" }}>🗺️ Sakay</h1>
+    <main className="sakay-page">
+      <style jsx>{`
+        .sakay-page {
+          width: 100%;
+          max-width: 1180px;
+          margin: 0 auto;
+          padding: clamp(16px, 3vw, 32px);
+          color: #17211b;
+          box-sizing: border-box;
+        }
+        .page-heading { margin-bottom: 22px; }
+        .page-heading h1 { margin: 0; font-size: clamp(25px, 3vw, 34px); font-weight: 800; letter-spacing: -0.04em; }
+        .page-heading p { margin: 7px 0 0; color: #647067; font-size: 14px; }
+        .search-panel {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+          gap: 14px;
+          padding: 18px;
+          margin-bottom: 18px;
+          border: 1px solid #e5ebe6;
+          border-radius: 18px;
+          background: #fff;
+          box-shadow: 0 8px 24px rgba(20, 50, 30, .05);
+        }
+        .field { min-width: 0; position: relative; }
+        .field label { display: block; margin: 0 0 7px; font-size: 12px; font-weight: 700; color: #526057; }
+        .field input {
+          display: block; width: 100%; min-height: 48px; box-sizing: border-box;
+          padding: 12px 14px; border: 1px solid #dce5de; border-radius: 11px;
+          background: #fbfdfb; color: #17211b; font: inherit; outline: none;
+        }
+        .field input:focus { border-color: #198754; box-shadow: 0 0 0 3px rgba(25,135,84,.12); }
+        .suggestions {
+          position: absolute; z-index: 1000; top: calc(100% + 5px); left: 0; right: 0;
+          overflow: hidden; border: 1px solid #e2e9e3; border-radius: 12px;
+          background: white; box-shadow: 0 12px 28px rgba(0,0,0,.12);
+        }
+        .suggestion {
+          width: 100%; display: block; padding: 12px 14px; border: 0;
+          border-bottom: 1px solid #f0f2f0; background: #fff; color: #26332a;
+          text-align: left; cursor: pointer; font: inherit;
+        }
+        .suggestion:last-child { border-bottom: 0; }
+        .suggestion:hover { background: #f2f8f3; }
+        .results-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+          gap: 18px;
+          align-items: start;
+        }
+        .map-panel {
+          height: clamp(320px, 43vw, 520px);
+          min-width: 0; overflow: hidden; border: 1px solid #e3e9e4;
+          border-radius: 18px; background: #eef3ef;
+        }
+        .route-list { display: grid; gap: 12px; min-width: 0; }
+        .route-card {
+          padding: 16px; border: 1px solid #e5ebe6; border-radius: 16px;
+          background: #fff; box-shadow: 0 5px 18px rgba(20,50,30,.04);
+        }
+        .route-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .route-title { font-size: 15px; font-weight: 750; }
+        .route-tag { flex: 0 0 auto; font-size: 10px; font-weight: 800; letter-spacing: .04em;
+          color: #246b43; background: #eaf5ed; padding: 5px 9px; border-radius: 99px; }
+        .route-meta { margin-top: 10px; font-size: 14px; font-weight: 700; color: #26332a; }
+        .route-sign { margin-top: 9px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+        .route-note { margin-top: 5px; color: #748078; font-size: 12px; line-height: 1.5; }
+        .distance-note { margin: 0 0 12px; color: #4c5c51; font-size: 13px; font-weight: 650; }
+        .empty-state {
+          padding: 24px; border: 1px dashed #cbd8ce; border-radius: 16px;
+          background: #f8fbf8; color: #647067; text-align: center; font-size: 14px;
+        }
+        @media (max-width: 600px) {
+          .sakay-page { padding: 14px; }
+          .search-panel { padding: 14px; gap: 12px; border-radius: 15px; }
+          .map-panel { height: 360px; }
+          .route-card { padding: 14px; }
+        }
+      `}</style>
 
-      {/* FROM - may sariling choices pang-phone */}
-<div style={{ position: "relative", marginBottom: 8 }}>
-  <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Saan ka manggagaling? Ex: FEU Manila" style={{ width: "100%", padding: 12, borderRadius: 10, border: "1px solid #ddd" }} />
-  {from && PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).map(p => (
-    <div key={p.name} onClick={() => setFrom(p.name)} style={{ padding: 12, background: "#fff", borderBottom: "1px solid #eee", cursor: "pointer" }}>
-      📍 {p.name}
-    </div>
-  ))}
-</div>
+      <header className="page-heading">
+        <h1>🗺️ Sakay Maps</h1>
+        <p>Hanapin ang biyahe mo sa Metro Manila.</p>
+      </header>
 
-{/* TO - may sariling choices pang-phone */}
-<div style={{ position: "relative", marginBottom: 12 }}>
-  <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Saan ka pupunta? Ex: UE Manila - Recto" style={{ width: "100%", padding: 12, borderRadius: 10, border: "1px solid #ddd" }} />
-  {to && PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).map(p => (
-    <div key={p.name} onClick={() => setTo(p.name)} style={{ padding: 12, background: "#fff", borderBottom: "1px solid #eee", cursor: "pointer" }}>
-      🏁 {p.name}
-    </div>
-  ))}
-</div>
-
-      {from && to && (
-        <>
-          <p style={{ fontWeight: 600 }}>📏 {distKm.toFixed(1)} km • {toPlace.lat > fromPlace.lat ? "Pa-north • Pauwi" : "Pa-south • Paalis"}</p>
-
-          {/* MAPA - AYOS NA, BUO NA */}
-          <div style={{ height: 300, borderRadius: 12, overflow: "hidden", marginBottom: 14, border: "1px solid #e5e5e5" }}>
-            <MapContainer key={`${from}-${to}`} center={center} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={[fromPlace.lat, fromPlace.lng]}><Popup>📍 {from}</Popup></Marker>
-              <Marker position={[toPlace.lat, toPlace.lng]}><Popup>🏁 {to}</Popup></Marker>
-              <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} color="#2563eb" weight={4} />
-            </MapContainer>
-          </div>
-
-          {/* CARDS - PARANG LUMA, WALANG DILAW NA BOX */}
-          {routes.map((r) => (
-            <div key={r.id} style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, marginBottom: 10, background: "#fff" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <b>{r.title}</b>
-                <span style={{ fontSize: 11, background: "#f0f0f0", padding: "3px 8px", borderRadius: 20 }}>{r.tag}</span>
-              </div>
-              <div style={{ fontSize: 14, marginTop: 4 }}>₱{r.price} • {r.time} min • {r.rides}</div>
-              <div style={{ fontSize: 13, marginTop: 6, color: "#333" }}>🪧 Karatula: <b>{r.sign}</b></div>
-              <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{r.note}</div>
+      <section className="search-panel" aria-label="Route search">
+        <div className="field">
+          <label htmlFor="sakay-from">📍 GALING SA</label>
+          <input
+            id="sakay-from"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            placeholder="Saan ka manggagaling? Hal. FEU Manila"
+            autoComplete="off"
+          />
+          {from && PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).length > 0 && (
+            <div className="suggestions">
+              {PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).map(p => (
+                <button type="button" className="suggestion" key={p.name} onClick={() => setFrom(p.name)}>
+                  📍 {p.name}
+                </button>
+              ))}
             </div>
-          ))}
+          )}
+        </div>
+
+        <div className="field">
+          <label htmlFor="sakay-to">🏁 PAPUNTA SA</label>
+          <input
+            id="sakay-to"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            placeholder="Saan ka pupunta? Hal. UE Manila - Recto"
+            autoComplete="off"
+          />
+          {to && PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).length > 0 && (
+            <div className="suggestions">
+              {PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).map(p => (
+                <button type="button" className="suggestion" key={p.name} onClick={() => setTo(p.name)}>
+                  🏁 {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {from && to ? (
+        <>
+          <p className="distance-note">
+            📏 Tinatayang tuwid na distansya: {distKm.toFixed(1)} km
+            {" • "}
+            {toPlace.lat > fromPlace.lat ? "Pa-north" : "Pa-south"}
+          </p>
+
+          <section className="results-grid" aria-label="Route results">
+            <div className="map-panel">
+              <MapContainer
+                key={`${from}-${to}`}
+                center={center}
+                zoom={14}
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker position={[fromPlace.lat, fromPlace.lng]}>
+                  <Popup>📍 {from}</Popup>
+                </Marker>
+                <Marker position={[toPlace.lat, toPlace.lng]}>
+                  <Popup>🏁 {to}</Popup>
+                </Marker>
+                <Polyline
+                  positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]}
+                  color="#198754"
+                  weight={4}
+                />
+              </MapContainer>
+            </div>
+
+            <div className="route-list">
+              {routes.map((r) => (
+                <article className="route-card" key={r.id}>
+                  <div className="route-top">
+                    <span className="route-title">{r.title}</span>
+                    <span className="route-tag">{r.tag}</span>
+                  </div>
+                  <div className="route-meta">₱{r.price} • {r.time} min • {r.rides}</div>
+                  <div className="route-sign">🪧 Karatula / ruta: <b>{r.sign}</b></div>
+                  <div className="route-note">{r.note}</div>
+                </article>
+              ))}
+              <p className="route-note">
+                Paalala: mga paunang estimate lamang ang pamasahe at oras. I-verify ang aktuwal na ruta at sakayan bago bumiyahe.
+              </p>
+            </div>
+          </section>
         </>
+      ) : (
+        <div className="empty-state">
+          Piliin ang pinanggalingan at destination para makita ang mapa at mga posibleng sakay.
+        </div>
       )}
-
-
-    </div>
+    </main>
   );
 }
