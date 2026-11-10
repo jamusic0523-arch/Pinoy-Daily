@@ -1,299 +1,193 @@
 "use client";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 
-// ===== ACCURATE COORDS - Verified Metro Manila =====
+const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
+const Polyline = dynamic(() => import("react-leaflet").then(m => m.Polyline), { ssr: false });
+
 const PLACES = [
-  // QUEZON CITY
-  { name: "SM North EDSA", lat: 14.6567, lng: 121.0295, area: "Quezon City" },
-  { name: "Trinoma", lat: 14.6545, lng: 121.0328, area: "Quezon City" },
-  { name: "Cubao - Araneta City", lat: 14.6215, lng: 121.0532, area: "Quezon City" },
-  { name: "Eastwood City", lat: 14.6097, lng: 121.0815, area: "Quezon City" },
-  { name: "SM Fairview", lat: 14.7337, lng: 121.0585, area: "Quezon City" },
-  { name: "Commonwealth - Litex", lat: 14.6788, lng: 121.0785, area: "Quezon City" },
-  { name: "Philcoa", lat: 14.6492, lng: 121.0578, area: "Quezon City" },
-  { name: "Kamuning", lat: 14.6362, lng: 121.0458, area: "Quezon City" },
-  { name: "Tomas Morato", lat: 14.6355, lng: 121.0375, area: "Quezon City" },
-  { name: "Welcome Rotonda", lat: 14.6182, lng: 121.0028, area: "Quezon City" },
-  // QC SCHOOLS
-  { name: "UP Diliman", lat: 14.6541, lng: 121.0627, area: "Quezon City - School" },
-  { name: "Ateneo de Manila", lat: 14.6398, lng: 121.0785, area: "Quezon City - School" },
-  { name: "Miriam College Katipunan", lat: 14.6408, lng: 121.0775, area: "Quezon City - School" },
-  { name: "Philippine Science High School - Main", lat: 14.6485, lng: 121.0575, area: "Quezon City - School" },
-  { name: "New Era University", lat: 14.6615, lng: 121.0645, area: "Quezon City - School" },
-  { name: "FEU Diliman", lat: 14.6605, lng: 121.0685, area: "Quezon City - School" },
-  { name: "Quezon City Science High School", lat: 14.6458, lng: 121.0445, area: "Quezon City - School" },
-  { name: "Technological Institute of the Philippines QC", lat: 14.6225, lng: 121.0425, area: "Quezon City - School" },
+    // --- SCHOOLS ---
+    { name: "FEU Manila", lat: 14.6038, lng: 120.9866 },
+    { name: "UE Manila - Recto", lat: 14.6045, lng: 120.9860 },
+    { name: "NU Manila - Sampaloc", lat: 14.6058, lng: 120.9875 },
+    { name: "San Beda University - Mendiola", lat: 14.5990, lng: 120.9890 },
+    { name: "Mapua University - Intramuros", lat: 14.5905, lng: 120.9755 },
+    { name: "Adamson University", lat: 14.5875, lng: 120.9835 },
+    { name: "UST - Espana", lat: 14.6095, lng: 120.9895 },
+    { name: "UP Diliman", lat: 14.6530, lng: 121.0620 },
+    { name: "Ateneo de Manila", lat: 14.6390, lng: 121.0780 },
+    { name: "PUP Manila - Sta. Mesa", lat: 14.6000, lng: 121.0100 },
+    { name: "TUP Manila", lat: 14.5870, lng: 120.9840 },
+    { name: "PLM - Intramuros", lat: 14.5880, lng: 120.9720 },
+    // --- MALLS / PLACES ---
+    { name: "SM North EDSA", lat: 14.6567, lng: 121.0297 },
+    { name: "Mall of Asia (MOA)", lat: 14.5350, lng: 120.9820 },
+    { name: "SM Manila", lat: 14.5890, lng: 120.9810 },
+    { name: "Robinsons Manila", lat: 14.5820, lng: 120.9810 },
+    { name: "SM Megamall", lat: 14.5840, lng: 121.0570 },
+    { name: "Greenbelt / Ayala", lat: 14.5540, lng: 121.0240 },
+    // --- COMMUTE HUBS ---
+    { name: "Quiapo", lat: 14.5995, lng: 120.9842 },
+    { name: "Sampaloc", lat: 14.6075, lng: 120.9968 },
+    { name: "Divisoria", lat: 14.6050, lng: 120.9730 },
+    { name: "Intramuros", lat: 14.5890, lng: 120.9740 },
+    { name: "Cubao", lat: 14.6190, lng: 121.0530 },
+    { name: "Recto", lat: 14.6030, lng: 120.9820 },
+    { name: "Baclaran", lat: 14.5340, lng: 120.9920 },
+    { name: "Ortigas", lat: 14.5860, lng: 121.0610 },
+    { name: "Ayala / Makati", lat: 14.5540, lng: 121.0240 },
+    { name: "Pasay", lat: 14.5370, lng: 121.0010 },
+    { name: "Manila City Hall", lat: 14.59, lng: 120.981 },
+    { name: "Espana", lat: 14.6090, lng: 120.9910 },
+    { name: "Mendiola", lat: 14.5995, lng: 120.9895 },
+  ];
 
-  // MANILA
-  { name: "Divisoria", lat: 14.6018, lng: 120.9745, area: "Manila" },
-  { name: "Quiapo Church", lat: 14.5989, lng: 120.9838, area: "Manila" },
-  { name: "Intramuros", lat: 14.5895, lng: 120.9748, area: "Manila" },
-  { name: "Binondo - Chinatown", lat: 14.6005, lng: 120.9705, area: "Manila" },
-  { name: "Rizal Park Luneta", lat: 14.5815, lng: 120.9765, area: "Manila" },
-  { name: "Tondo - Tutuban Center", lat: 14.6115, lng: 120.9685, area: "Manila" },
-  { name: "Malate - Remedios Circle", lat: 14.5725, lng: 120.9825, area: "Manila" },
-  { name: "Ermita - Robinsons Manila", lat: 14.5805, lng: 120.9815, area: "Manila" },
-  { name: "Paco Market", lat: 14.5875, lng: 120.9965, area: "Manila" },
-  { name: "Pedro Gil", lat: 14.5775, lng: 120.9955, area: "Manila" },
-  { name: "Recto - LRT Recto", lat: 14.6025, lng: 120.9845, area: "Manila" },
-  { name: "Blumentritt", lat: 14.6215, lng: 120.9835, area: "Manila" },
-  // MANILA SCHOOLS
-  { name: "UST - University of Santo Tomas", lat: 14.6095, lng: 120.9895, area: "Manila - School" },
-  { name: "FEU - Far Eastern University", lat: 14.6035, lng: 120.9865, area: "Manila - School" },
-  { name: "UE - University of the East Recto", lat: 14.6015, lng: 120.9855, area: "Manila - School" },
-  { name: "Adamson University", lat: 14.5865, lng: 120.9845, area: "Manila - School" },
-  { name: "Mapua University Intramuros", lat: 14.5875, lng: 120.9775, area: "Manila - School" },
-  { name: "PUP - Polytechnic University", lat: 14.5985, lng: 121.0045, area: "Manila - School" },
-  { name: "TUP - Technological University", lat: 14.5885, lng: 120.9875, area: "Manila - School" },
-  { name: "PLM - Pamantasan ng Lungsod ng Maynila", lat: 14.5905, lng: 120.9745, area: "Manila - School" },
-  { name: "San Beda University", lat: 14.5995, lng: 120.9905, area: "Manila - School" },
-  { name: "Centro Escolar University", lat: 14.6005, lng: 120.9845, area: "Manila - School" },
-  { name: "UP Manila", lat: 14.5805, lng: 120.9845, area: "Manila - School" },
-  { name: "DLSU - De La Salle Manila", lat: 14.5658, lng: 120.9938, area: "Manila - School" },
-
-  // MAKATI / TAGUIG
-  { name: "Makati - Ayala Ave", lat: 14.5547, lng: 121.0244, area: "Makati" },
-  { name: "Greenbelt Makati", lat: 14.5525, lng: 121.0215, area: "Makati" },
-  { name: "Glorietta Makati", lat: 14.5515, lng: 121.0265, area: "Makati" },
-  { name: "Buendia - Gil Puyat", lat: 14.5545, lng: 121.0085, area: "Makati" },
-  { name: "Guadalupe - EDSA", lat: 14.5655, lng: 121.0385, area: "Makati" },
-  { name: "BGC - High Street", lat: 14.5545, lng: 121.0485, area: "Taguig" },
-  { name: "BGC - Market Market", lat: 14.5495, lng: 121.0565, area: "Taguig" },
-  { name: "McKinley Hill", lat: 14.5325, lng: 121.0525, area: "Taguig" },
-  { name: "SM Aura BGC", lat: 14.5465, lng: 121.0555, area: "Taguig" },
-  { name: "University of Makati", lat: 14.5585, lng: 121.0225, area: "Makati - School" },
-  { name: "Assumption College Makati", lat: 14.5595, lng: 121.0205, area: "Makati - School" },
-  { name: "Enderun Colleges BGC", lat: 14.5505, lng: 121.0505, area: "Taguig - School" },
-  { name: "International School Manila", lat: 14.5505, lng: 121.0505, area: "Taguig - School" },
-
-  // PASAY / PARANAQUE / LAS PINAS / MUNTINLUPA
-  { name: "MOA - Mall of Asia", lat: 14.5355, lng: 120.9825, area: "Pasay" },
-  { name: "NAIA Terminal 3", lat: 14.5085, lng: 121.0195, area: "Pasay" },
-  { name: "NAIA Terminal 1", lat: 14.5085, lng: 121.0095, area: "Pasay" },
-  { name: "MRT Taft Ave", lat: 14.5907, lng: 121.0165, area: "Pasay" },
-  { name: "Baclaran Church", lat: 14.5345, lng: 120.9985, area: "Paranaque" },
-  { name: "SM Sucat", lat: 14.4705, lng: 121.0205, area: "Paranaque" },
-  { name: "SM BF Paranaque", lat: 14.4505, lng: 121.0205, area: "Paranaque" },
-  { name: "SM Southmall Las Pinas", lat: 14.4475, lng: 120.9905, area: "Las Pinas" },
-  { name: "Alabang Town Center", lat: 14.4235, lng: 121.0285, area: "Muntinlupa" },
-  { name: "Festival Mall Alabang", lat: 14.4175, lng: 121.0405, area: "Muntinlupa" },
-  { name: "PATTS College Paranaque", lat: 14.4705, lng: 121.0205, area: "Paranaque - School" },
-  { name: "Olivarez College Paranaque", lat: 14.4705, lng: 121.0205, area: "Paranaque - School" },
-  { name: "University of Perpetual Help Las Pinas", lat: 14.4505, lng: 120.9905, area: "Las Pinas - School" },
-  { name: "San Beda Alabang", lat: 14.4205, lng: 121.0305, area: "Muntinlupa - School" },
-  { name: "De La Salle Zobel Alabang", lat: 14.4105, lng: 121.0305, area: "Muntinlupa - School" },
-
-  // MANDALUYONG / PASIG / SAN JUAN / MARIKINA
-  { name: "SM Megamall", lat: 14.5845, lng: 121.0565, area: "Mandaluyong" },
-  { name: "Robinsons Galleria", lat: 14.5895, lng: 121.0595, area: "Mandaluyong" },
-  { name: "Shaw Blvd - EDSA", lat: 14.5835, lng: 121.0495, area: "Mandaluyong" },
-  { name: "Ortigas Center", lat: 14.5865, lng: 121.0615, area: "Pasig" },
-  { name: "Pasig Palengke", lat: 14.5595, lng: 121.0785, area: "Pasig" },
-  { name: "Marikina - Riverbanks", lat: 14.6405, lng: 121.0905, area: "Marikina" },
-  { name: "Greenhills San Juan", lat: 14.6065, lng: 121.0475, area: "San Juan" },
-  { name: "Rizal Technological University", lat: 14.5805, lng: 121.0605, area: "Mandaluyong - School" },
-  { name: "University of Asia and Pacific", lat: 14.5605, lng: 121.0305, area: "Pasig - School" },
-  { name: "La Salle Green Hills", lat: 14.6065, lng: 121.0455, area: "San Juan - School" },
-  { name: "Xavier School San Juan", lat: 14.6105, lng: 121.0405, area: "San Juan - School" },
-
-  // CALOOCAN / MALABON / NAVOTAS / VALENZUELA
-  { name: "Monumento Caloocan", lat: 14.6575, lng: 120.9845, area: "Caloocan" },
-  { name: "SM Grand Central Caloocan", lat: 14.6525, lng: 120.9835, area: "Caloocan" },
-  { name: "Malabon - Fish Market", lat: 14.6605, lng: 120.9545, area: "Malabon" },
-  { name: "Navotas - Agora Market", lat: 14.6605, lng: 120.9405, area: "Navotas" },
-  { name: "Valenzuela - SM Valenzuela", lat: 14.7005, lng: 120.9805, area: "Valenzuela" },
-  { name: "University of Caloocan City", lat: 14.6505, lng: 120.9805, area: "Caloocan - School" },
-  { name: "Arellano University Malabon", lat: 14.6605, lng: 120.9505, area: "Malabon - School" },
-  { name: "Pamantasan ng Lungsod ng Valenzuela", lat: 14.7005, lng: 120.9805, area: "Valenzuela - School" },
-];
-
-const POPULAR = [
-  { from: "SM North EDSA", to: "MOA - Mall of Asia", label: "SM North → MOA" },
-  { from: "Cubao - Araneta City", to: "Divisoria", label: "Cubao → Divisoria" },
-  { from: "Quiapo Church", to: "Intramuros", label: "Quiapo → Intramuros" },
-  { from: "Makati - Ayala Ave", to: "BGC - High Street", label: "Makati → BGC" },
-  { from: "UST - University of Santo Tomas", to: "SM North EDSA", label: "UST → SM North" },
-  { from: "UP Diliman", to: "Ateneo de Manila", label: "UP → Ateneo" },
-];
-
-// Haversine - straight line distance for fallback
-function haversineKm(a: any, b: any) {
-  const R = 6371;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
-  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180) * Math.cos(b.lat*Math.PI/180) * Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+function calcFare(km: number, type: "jeep" | "mrt" | "bus") {
+  if (type === "jeep") return 15 + Math.max(0, km - 4) * 2;
+  if (type === "mrt") return 16 + km * 1.2;
+  return 15 + km * 1.5;
 }
 
-// LTFRB 2024-2026 Fare Basis - accurate
-function calcFare(distKm: number, mode: "jeep" | "bus" | "mrt") {
-  if (mode === "jeep") {
-    // Jeep: ₱13 base for first 4km, + ₱1.80 per succeeding km
-    if (distKm <= 4) return 13;
-    return Math.round(13 + (distKm - 4) * 1.8);
-  }
-  if (mode === "bus") {
-    // Ordinary Bus: ₱15 base for first 5km, + ₱2.65 per km
-    if (distKm <= 5) return 15;
-    return Math.round(15 + (distKm - 5) * 2.65);
-  }
-  // MRT/LRT: ₱13 base + ~₱1 per station approx, min 13 max 30
-  return Math.min(30, Math.round(13 + distKm * 0.9));
+function getSakayDetails(fromName: string, toName: string, distKm: number) {
+  const f = fromName.toLowerCase();
+  const t = toName.toLowerCase();
+
+  const jeepSign = () => {
+    if (f.includes("quiapo") || t.includes("quiapo")) return "Jeep: Quiapo - Sampaloc";
+    if (f.includes("divisoria") || t.includes("divisoria")) return "Jeep: Divisoria - Baclaran";
+    if (f.includes("cubao") || t.includes("cubao")) return "Jeep: Cubao - Quiapo";
+    if (f.includes("sampaloc") || t.includes("sampaloc")) return "Jeep: Sampaloc - Quiapo";
+    if (f.includes("intramuros") || t.includes("intramuros")) return "Jeep: Quiapo - Pier / Intramuros";
+    if (f.includes("recto") || t.includes("recto")) return "Jeep: Recto - Divisoria";
+    if (f.includes("baclaran") || t.includes("baclaran")) return "Jeep: Baclaran - Divisoria";
+    if (f.includes("pasay") || t.includes("pasay")) return "Jeep: Pasay - Quiapo";
+    return `Jeep: ${fromName} - ${toName}`;
+  };
+
+  const trainLine = () => {
+    if (f.includes("recto") || t.includes("recto") || f.includes("cubao") || f.includes("sampaloc")) return "LRT-2 (Recto - Antipolo)";
+    if (f.includes("baclaran") || t.includes("baclaran") || f.includes("pasay") || f.includes("quiapo") || f.includes("manila")) return "LRT-1 (Baclaran - Roosevelt)";
+    return "MRT-3 (North Ave - Taft Ave)";
+  };
+
+  const busSign = () => {
+    if (distKm >= 8) return "Bus: EDSA Carousel - PITX / Monumento";
+    if (f.includes("quiapo") || t.includes("quiapo")) return "Bus: Quiapo - Fairview / Lagro";
+    if (f.includes("cubao")) return "Bus: Cubao - Divisoria";
+    return `Bus: ${fromName} - ${toName}`;
+  };
+
+  return { jeepSign: jeepSign(), trainLine: trainLine(), busSign: busSign() };
 }
 
-function RealMap({ from, to, routeId, onRealData }: any) {
-  const ref = useRef<any>(null);
-  const mapRef = useRef<any>(null);
-  const layerRef = useRef<any>(null);
-  useEffect(() => {
-    const load = () => new Promise((res) => {
-      if ((window as any).L) return res(true);
-      const s = document.createElement("script");
-      s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      s.onload = () => res(true);
-      document.head.appendChild(s);
-      if (!document.getElementById("leaflet-css")) {
-        const l = document.createElement("link");
-        l.id = "leaflet-css"; l.rel = "stylesheet";
-        l.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        document.head.appendChild(l);
-      }
-    });
-    load().then(async () => {
-      const L = (window as any).L;
-      if (!ref.current) return;
-      if (!mapRef.current) {
-        mapRef.current = L.map(ref.current).setView([14.59, 121.01], 12);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(mapRef.current);
-      }
-      if (layerRef.current) mapRef.current.removeLayer(layerRef.current);
-      const fromPlace = PLACES.find(p => p.name === from) || PLACES[0];
-      const toPlace = PLACES.find(p => p.name === to) || PLACES[1];
-      const color = routeId === "mabilis" ? "#dc2626" : routeId === "konti" ? "#16a34a" : "#2563eb";
-      const group = L.layerGroup().addTo(mapRef.current);
-      try {
-        // REAL ROAD DISTANCE from OSRM - hindi straight line
-        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${fromPlace.lng},${fromPlace.lat};${toPlace.lng},${toPlace.lat}?overview=full&geometries=geojson`);
-        const d = await r.json();
-        if (d.routes?.[0]) {
-          const route = d.routes[0];
-          const line = route.geometry.coordinates.map((c: any) => [c[1], c[0]]);
-          L.polyline(line, { color, weight: 6, opacity: 0.9 }).addTo(group);
-          // Ipadala yung totoong distance/duration sa parent
-          onRealData({ distKm: route.distance / 1000, durationMin: route.duration / 60 });
-        } else {
-          onRealData({ distKm: haversineKm(fromPlace, toPlace) * 1.4, durationMin: haversineKm(fromPlace, toPlace) * 3 });
-        }
-      } catch {
-        const fallback = haversineKm(fromPlace, toPlace) * 1.4;
-        onRealData({ distKm: fallback, durationMin: fallback * 3 });
-        L.polyline([[fromPlace.lat, fromPlace.lng],[toPlace.lat, toPlace.lng]], { color, weight: 4, dashArray: "8,8" }).addTo(group);
-      }
-      L.marker([fromPlace.lat, fromPlace.lng]).addTo(group).bindPopup(`<div style="font-family: Georgia, serif;"><b style="color:#166B4A;">Sakay Dito:</b><br/>${fromPlace.name}</div>`).openPopup();
-      L.marker([toPlace.lat, toPlace.lng]).addTo(group).bindPopup(`<div style="font-family: Georgia, serif;"><b style="color:#166B4A;">Baba Dito:</b><br/>${toPlace.name}</div>`);
-      mapRef.current.fitBounds([[fromPlace.lat, fromPlace.lng],[toPlace.lat, toPlace.lng]], { padding: [40, 40] });
-      layerRef.current = group;
-    });
-  }, [from, to, routeId]);
-  return (
-    <>
-      <style>{`.leaflet-container, .leaflet-popup-content { font-family: Georgia, 'Times New Roman', serif !important; } .leaflet-popup-content b { color: #166B4A; }`}</style>
-      <div ref={ref} className="w-full h-[320px] rounded-b-[20px] z-0" style={{ fontFamily: "Georgia, serif" }} />
-    </>
-  );
+// FIX 1: Ni-rename ko - getDirectionText na, hindi na directionLabel
+function getDirectionText(fromLat: number, toLat: number) {
+  return toLat > fromLat ? "Pa-north • Pauwi" : "Pa-south • Paalis";
 }
 
 export default function SakayPage() {
-  const [from, setFrom] = useState("SM North EDSA");
-  const [to, setTo] = useState("MOA - Mall of Asia");
-  const [selected, setSelected] = useState("mura");
-  const [showFrom, setShowFrom] = useState(false);
-  const [showTo, setShowTo] = useState(false);
-  const [realData, setRealData] = useState({ distKm: 19.2, durationMin: 58 });
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
-  const fromPlace = PLACES.find(p => p.name === from) || PLACES[0];
-  const toPlace = PLACES.find(p => p.name === to) || PLACES[1];
-  const straightKm = haversineKm(fromPlace, toPlace);
+  const fromPlace = PLACES.find((p) => p.name === from) ?? PLACES[0];
+  const toPlace = PLACES.find((p) => p.name === to) ?? PLACES[1];
 
-  // Gamitin yung REAL OSRM distance pag meron na, fallback sa estimate
-  const distKm = realData.distKm > 0 ? realData.distKm : straightKm * 1.4;
-  const baseMin = realData.durationMin > 0 ? realData.durationMin : distKm * 3;
+  const distKm = useMemo(() => {
+    if (!from || !to) return 0;
+    const R = 6371;
+    const dLat = ((toPlace.lat - fromPlace.lat) * Math.PI) / 180;
+    const dLng = ((toPlace.lng - fromPlace.lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((fromPlace.lat * Math.PI) / 180) *
+        Math.cos((toPlace.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }, [from, to, fromPlace, toPlace]);
 
-// Dynamic Routes - iba pag pauwi vs paalis
-const routes = useMemo(() => {
-  const isNorthbound = toPlace.lat > fromPlace.lat;
-  const dirHash = (from.charCodeAt(0) + to.charCodeAt(0)) % 10;
-  const dirTraffic = isNorthbound ? 1.12 : 0.95;
-  const dirFareAdjust = isNorthbound ? 2 : 0;
+  const baseMin = Math.round(distKm * 3.5 + 8);
 
-  const tipidFare = calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt") + dirFareAdjust;
-  const tipidTime = Math.round((baseMin * 1.35 + 12) * dirTraffic + (dirHash % 3));
-  
-  const expressFare = calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus") + dirFareAdjust;
-  const expressTime = Math.round((baseMin * 0.85 + 5) * dirTraffic);
-  
-  const isangFare = calcFare(distKm, "bus") + 10 + dirFareAdjust;
-  const isangTime = Math.round((baseMin * 1.1 + 3) * dirTraffic + (dirHash % 4));
+  const routes = useMemo(() => {
+    if (!from || !to) return [];
+    const details = getSakayDetails(from, to, distKm);
+    const isNorthbound = toPlace.lat > fromPlace.lat;
+    const dirTraffic = isNorthbound ? 1.12 : 0.95;
+    const dirFareAdjust = isNorthbound ? 2 : 0;
+    // FIX 1: dirText na, hindi directionLabel
+    const dirText = isNorthbound ? "Pa-north • Pauwi" : "Pa-south • Paalis";
 
-  const tipidSteps = isNorthbound ? ["Jeep", "LRT/MRT"] : ["LRT/MRT", "Jeep"];
-  const expressSteps = isNorthbound ? ["Bus", "MRT-3"] : ["MRT-3", "Bus"];
-  const directionLabel = isNorthbound ? "Pa-north • Pauwi" : "Pa-south • Paalis";
+    const isShort = distKm < 3;
+    const isMedium = distKm >= 3 && distKm < 8;
 
-  return [
-    { id: "mura", title: "💰 Tipid Mode", price: tipidFare, time: tipidTime, rides: "2 sakay", steps: tipidSteps, note: `${directionLabel}` },
-    { id: "mabilis", title: "⚡ Express Mode", price: expressFare, time: expressTime, rides: "2 sakay", steps: expressSteps, note: `Via EDSA` },
-    { id: "konti", title: "🚌 Isang Sakay Lang", price: isangFare, time: isangTime, rides: "1 sakay", steps: ["Bus Direct"], note: `${directionLabel}` },
-  ];
-}, [distKm, baseMin, from, to, fromPlace, toPlace]);
+    if (isShort) {
+      return [
+        { id: "mura", title: "💰 Tipid Mode", price: 15, time: Math.round(baseMin * 1.4 + 5), rides: "1 sakay", steps: [details.jeepSign], note: `${dirText}` },
+        { id: "mabilis", title: "⚡ Express Mode", price: 30, time: Math.round(baseMin * 0.9 + 2), rides: "1 sakay", steps: ["Tricycle / E-trike"], note: `Diretso, walang hintay` },
+        { id: "konti", title: "🚌 Isang Sakay Lang", price: 15, time: Math.round(baseMin * 1.2 + 3), rides: "1 sakay", steps: [details.jeepSign], note: `Isang jeep lang • ${dirText}` },
+      ];
+    }
 
-  const filteredFrom = PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()));
-  const filteredTo = PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()));
-  const serif = { fontFamily: "Georgia, 'Times New Roman', serif" } as any;
+    if (isMedium) {
+      return [
+        { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm, "jeep")), time: Math.round(baseMin * 1.3 + 8), rides: "1 sakay", steps: [details.jeepSign], note: `${dirText}` },
+        { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm, "bus")), time: Math.round(baseMin * 0.9 + 4), rides: "1 sakay", steps: [details.busSign], note: `Isang bus lang` },
+        { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 5), time: Math.round(baseMin * 1.1 + 3), rides: "1 sakay", steps: [details.busSign], note: `Walang lipat • ${dirText}` },
+      ];
+    }
+
+    return [
+      { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt") + dirFareAdjust), time: Math.round((baseMin * 1.35 + 12) * dirTraffic), rides: "2 sakay", steps: isNorthbound ? [details.jeepSign, details.trainLine] : [details.trainLine, details.jeepSign], note: `${dirText}` },
+      { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus") + dirFareAdjust), time: Math.round((baseMin * 0.85 + 5) * dirTraffic), rides: "2 sakay", steps: isNorthbound ? [details.busSign, details.trainLine] : [details.trainLine, details.busSign], note: `Via EDSA` },
+      { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 10 + dirFareAdjust), time: Math.round((baseMin * 1.1 + 3) * dirTraffic), rides: "1 sakay", steps: [details.busSign], note: `${dirText}` },
+    ];
+  }, [distKm, baseMin, from, to, fromPlace, toPlace]);
+
+  // FIX 2: center dapat tuple na [number, number]
+  const center: [number, number] = [(fromPlace.lat + toPlace.lat) / 2, (fromPlace.lng + toPlace.lng) / 2];
 
   return (
-    <div className="min-h-screen bg-[#F5EFE0] p-4 pb-24 max-w-md mx-auto" style={serif}>
-      <h1 className="text-[32px] leading-tight" style={serif}>Saan ka pupunta?</h1>
-      <p className="text-sm text-gray-600 mb-3" style={serif}>Metro Manila • {distKm.toFixed(1)} km • {PLACES.length} places + schools</p>
+    <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
+      <h1>🗺️ Sakay</h1>
 
-      <div className="bg-white rounded-[20px] p-4 shadow-sm border border-gray-100 space-y-2">
-        <div className="relative">
-          <label className="text-xs font-bold" style={serif}>FROM</label>
-          <input value={from} onChange={e => { setFrom(e.target.value); setShowFrom(true); }} onFocus={() => setShowFrom(true)} placeholder="Type: UST, Divisoria, Ateneo..." className="w-full border border-gray-200 rounded-xl px-3 py-2" style={serif} />
-          {showFrom && <div className="absolute z-20 w-full bg-white border rounded-xl mt-1 max-h-[180px] overflow-auto shadow-lg">{filteredFrom.map(p => <button key={p.name} onClick={() => { setFrom(p.name); setShowFrom(false); }} className="w-full text-left px-3 py-2 hover:bg-yellow-50 border-b text-sm">{p.name} <span className="text-xs text-gray-500">- {p.area}</span></button>)}</div>}
-        </div>
-        <button onClick={() => { const f = from; setFrom(to); setTo(f); }} className="w-full bg-white border border-gray-200 rounded-full py-2 text-sm" style={serif}>⇅ Swap</button>
-        <div className="relative">
-          <label className="text-xs font-bold" style={serif}>TO</label>
-          <input value={to} onChange={e => { setTo(e.target.value); setShowTo(true); }} onFocus={() => setShowTo(true)} placeholder="Type: MOA, BGC, DLSU..." className="w-full border border-gray-200 rounded-xl px-3 py-2" style={serif} />
-          {showTo && <div className="absolute z-20 w-full bg-white border rounded-xl mt-1 max-h-[180px] overflow-auto shadow-lg">{filteredTo.map(p => <button key={p.name} onClick={() => { setTo(p.name); setShowTo(false); }} className="w-full text-left px-3 py-2 hover:bg-yellow-50 border-b text-sm">{p.name} <span className="text-xs text-gray-500">- {p.area}</span></button>)}</div>}
-        </div>
-        <div className="bg-[#F5EFE0] rounded-xl px-3 py-2 flex justify-between text-xs" style={serif}>
-          <span>Totoong layo: <b>{distKm.toFixed(1)} km</b></span>
-          <span>Est. biyahe: <b>{Math.round(baseMin)} min (kotse)</b></span>
-        </div>
-        <button onClick={() => { setShowFrom(false); setShowTo(false); }} className="w-full bg-[#166B4A] text-white rounded-full py-2.5" style={serif}>Find My Route</button>
-        <div className="pt-2">
-          <p className="text-xs mb-2" style={serif}>PINAKA HINAHANAP SA MANILA:</p>
-          <div className="flex flex-wrap gap-2">{POPULAR.map(t => <button key={t.label} onClick={() => { setFrom(t.from); setTo(t.to); }} className="bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs shadow-sm">{t.label}</button>)}</div>
-        </div>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {routes.map(r => (
-          <button key={r.id} onClick={() => setSelected(r.id)} className={`w-full text-left bg-white rounded-[20px] p-3 shadow-sm border ${selected === r.id ? "border-[#166B4A] bg-green-50" : "border-gray-100"}`}>
-            <div className="flex justify-between items-center"><span className="font-bold">{r.title} {selected === r.id ? "✓" : ""}</span><span className="font-bold text-lg">₱{r.price}</span></div>
-            <div className="text-xs text-gray-600 mt-1">{r.time} min • {r.rides} • {r.steps.join(" → ")} • {r.note}</div>
-            <div className="text-[11px] text-gray-500 mt-0.5">Est. base sa {distKm.toFixed(1)} km • Maaaring magbago sa traffic</div>
-          </button>
+      <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Saan ka manggagaling? Ex: Quiapo" list="places" style={{ width: "100%", padding: 12, marginBottom: 8, borderRadius: 10 }} />
+      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Saan ka pupunta? Ex: Sampaloc" list="places" style={{ width: "100%", padding: 12, marginBottom: 12, borderRadius: 10 }} />
+      <datalist id="places">
+        {PLACES.map((p) => (
+          <option key={p.name} value={p.name} />
         ))}
-      </div>
+      </datalist>
 
-      <div className="mt-5 rounded-[20px] overflow-hidden border border-gray-100 bg-white shadow-sm">
-        <div className="px-3 py-2 flex justify-between items-center"><span className="text-[13px]" style={serif}>Mapa</span><span className="text-[11px] text-gray-500">{from} → {to}</span></div>
-        <RealMap from={from} to={to} routeId={selected} onRealData={setRealData} />
-      </div>
+      {from && to && (
+        <>
+          <p>📏 {distKm.toFixed(1)} km • {getDirectionText(fromPlace.lat, toPlace.lat)}</p>
 
-      <p className="text-[11px] text-gray-500 mt-3 text-center" style={serif}>* Estimate lang base sa totoong road distance (OSRM) + LTFRB fares. Magdala ng extra ₱20 at dagdag 15 min pag rush hour.</p>
+          <div style={{ height: 280, borderRadius: 12, overflow: "hidden", marginBottom: 12 }}>
+            <MapContainer center={center} zoom={12} style={{ height: "100%", width: "100%" }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={[fromPlace.lat, fromPlace.lng]}>
+                <Popup>📍 Simula: {from}</Popup>
+              </Marker>
+              <Marker position={[toPlace.lat, toPlace.lng]}>
+                <Popup>🏁 Punta: {to}</Popup>
+              </Marker>
+              <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} color="blue" />
+            </MapContainer>
+          </div>
+
+          {routes.map((r) => (
+            <div key={r.id} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, marginBottom: 10 }}>
+              <b>{r.title}</b> — ₱{r.price} • {r.time} min • {r.rides}
+              <div style={{ fontSize: 13, marginTop: 4 }}>{r.steps.join(" → ")}</div>
+              <div style={{ fontSize: 12, color: "#666" }}>{r.note}</div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {(!from || !to) && <p style={{ color: "#888", textAlign: "center", marginTop: 20 }}>👆 Pili ka muna ng simula at pupuntahan mo</p>}
     </div>
   );
 }
