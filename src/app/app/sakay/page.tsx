@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
-const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 const Polyline = dynamic(() => import("react-leaflet").then(m => m.Polyline), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 
 const PLACES = [
   { name: "FEU Manila", lat: 14.6038, lng: 120.9866 },
@@ -42,48 +42,30 @@ const PLACES = [
   { name: "Mendiola", lat: 14.5995, lng: 120.9895 },
 ];
 
-function calcFare(km: number, type: "jeep" | "mrt" | "bus") {
-  if (type === "jeep") return 15 + Math.max(0, km - 4) * 2;
-  if (type === "mrt") return 16 + km * 1.2;
-  return 15 + km * 1.5;
-}
+// IMPORTANT:
+// Keep this registry empty until a route has been checked against reliable,
+// current sources. Do not generate jeepney/bus signboards from place names
+// or straight-line distance.
+type VerifiedRoute = {
+  id: string;
+  from: string;
+  to: string;
+  mode: "Jeepney" | "Modern jeepney" | "Bus" | "UV Express" | "LRT-1" | "LRT-2" | "MRT-3";
+  vehicle: string;
+  signboard?: string;
+  boardingPoint: string;
+  alightingPoint: string;
+  instructionsTl: string[];
+  instructionsEn: string[];
+  sourceName: string;
+  sourceUrl: string;
+  checkedOn: string;
+};
 
-function getSakayDetails(fromName: string, toName: string, distKm: number) {
-  const f = fromName.toLowerCase();
-  const t = toName.toLowerCase();
-  if (f.includes("feu") && t.includes("ue")) return { jeep: "Morayta - Recto", train: "Lakad lang, 5 min", bus: "Morayta - Recto" };
-  if (f.includes("ue") && t.includes("feu")) return { jeep: "Recto - Morayta", train: "Lakad lang, 5 min", bus: "Recto - Morayta" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("north")) return { jeep: "Morayta - SM North via Espana", train: "LRT-2 (Recto - Cubao) → MRT-3 (Cubao - North Ave)", bus: "Morayta - SM North via Quezon Ave" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("quiapo")) return { jeep: "Morayta - Quiapo", train: "Jeep lang", bus: "Morayta - Quiapo" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("sampaloc")) return { jeep: "Morayta - Sampaloc / UST", train: "Jeep lang", bus: "Morayta - Sampaloc" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("cubao")) return { jeep: "Morayta - Cubao via Espana", train: "LRT-2 (Recto - Cubao)", bus: "Quiapo - Cubao" };
-  if (f.includes("sampaloc") && t.includes("quiapo")) return { jeep: "Sampaloc - Quiapo via Espana", train: "Jeep lang", bus: "Sampaloc - Quiapo" };
-  if (f.includes("quiapo") && t.includes("sampaloc")) return { jeep: "Quiapo - Sampaloc", train: "Jeep lang", bus: "Quiapo - Sampaloc" };
-  if (f.includes("quiapo") && t.includes("divisoria")) return { jeep: "Quiapo - Divisoria", train: "Jeep lang", bus: "Quiapo - Divisoria" };
-  if (f.includes("quiapo") && t.includes("intramuros")) return { jeep: "Quiapo - Pier / Intramuros", train: "LRT-1 (Carriedo - Central)", bus: "Quiapo - Pier" };
-  if (f.includes("divisoria") && t.includes("baclaran")) return { jeep: "Divisoria - Baclaran", train: "LRT-1 (Doroteo Jose - Baclaran)", bus: "Divisoria - Baclaran" };
-  const jeep = () => {
-    if (f.includes("quiapo") || t.includes("quiapo")) return "Quiapo - Sampaloc";
-    if (f.includes("divisoria") || t.includes("divisoria")) return "Divisoria - Baclaran";
-    if (f.includes("cubao") || t.includes("cubao")) return "Cubao - Quiapo";
-    if (f.includes("sampaloc") || t.includes("sampaloc")) return "Sampaloc - Quiapo";
-    if (f.includes("intramuros")) return "Quiapo - Pier / Intramuros";
-    if (f.includes("recto") || t.includes("recto")) return "Recto - Divisoria";
-    if (f.includes("baclaran")) return "Baclaran - Divisoria";
-    return `${fromName} - ${toName}`;
-  };
-  const train = () => {
-    if (f.includes("recto") || t.includes("recto") || f.includes("cubao")) return "LRT-2 (Recto - Antipolo)";
-    if (f.includes("baclaran") || f.includes("quiapo")) return "LRT-1 (Baclaran - Roosevelt)";
-    return "MRT-3 (North Ave - Taft Ave)";
-  };
-  const bus = () => {
-    if (distKm >= 8) return "EDSA Carousel - PITX / Monumento";
-    if (f.includes("quiapo")) return "Quiapo - Fairview / Lagro";
-    return `${fromName} - ${toName}`;
-  };
-  return { jeep: jeep(), train: train(), bus: bus() };
-}
+const VERIFIED_ROUTES: VerifiedRoute[] = [
+  // Add only route records with a source that confirms the current service,
+  // direction, boarding/alighting points, and (for road vehicles) signboard.
+];
 
 export default function SakayPage() {
   const [from, setFrom] = useState("");
@@ -121,281 +103,15 @@ export default function SakayPage() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, [from, to, fromPlace, toPlace]);
 
-  const baseMin = Math.round(distKm * 3.5 + 8);
-
-  const routes = useMemo(() => {
-    if (!from || !to) return [];
-
-    const d = getSakayDetails(from, to, distKm);
-    const isNorth = toPlace.lat > fromPlace.lat;
-    const dirText = isNorth ? "Pa-north • Pauwi" : "Pa-south • Paalis";
-    const traffic = isNorth ? 1.12 : 0.95;
-
-    if (distKm < 3) {
-      return [
-        {
-          id: "mura",
-          title: "💰 Tipid Mode",
-          price: 15,
-          time: Math.round(baseMin * 1.4 + 5),
-          rides: "1 sakay",
-          tag: "JEEP",
-          vehicle: "Jeepney",
-          sign: d.jeep,
-          note: dirText,
-          steps: [
-            "Pumunta sa loading area na malapit sa pinanggalingan mo.",
-            `Hanapin ang jeep na may karatulang "${d.jeep}".`,
-            "Bago sumakay, itanong sa driver kung dadaan ito sa iyong bababaan.",
-            `Sabihin ang destination mo: ${to}. Magtanong kung saan pinakamainam bumaba.`,
-          ],
-
-          stepsEn: [
-
-            "Go to a loading area near your starting point.",
-
-            `Look for a jeepney with the signboard “${d.jeep}” at the front.`,
-
-            "Before getting on, ask the driver if it passes your stop.",
-
-            `Tell the driver your destination: ${to}. Ask where you should get off.`,
-
-          ],
-        },
-        {
-          id: "mabilis",
-          title: "⚡ Express Mode",
-          price: 30,
-          time: Math.round(baseMin * 0.9 + 2),
-          rides: "1 sakay",
-          tag: "TRICYCLE",
-          vehicle: "Tricycle / E-trike",
-          sign: "Walang standard na karatula",
-          note: "Diretso, walang hintay",
-          steps: [
-            "Humanap ng legal na tricycle terminal o pila.",
-            "Sabihin ang eksaktong destination at itanong muna ang pamasahe.",
-            "Kumpirmahin kung ihahatid ka mismo sa destination.",
-          ],
-
-          stepsEn: [
-
-            "Find an authorized tricycle terminal or queue.",
-
-            "Tell the driver your exact destination and ask the fare first.",
-
-            "Make sure the driver can take you directly to your destination.",
-
-          ],
-        },
-        {
-          id: "konti",
-          title: "🚌 Isang Sakay Lang",
-          price: 15,
-          time: Math.round(baseMin * 1.2 + 3),
-          rides: "1 sakay",
-          tag: "JEEP",
-          vehicle: "Jeepney",
-          sign: d.jeep,
-          note: `Isang jeep lang • ${dirText}`,
-          steps: [
-            "Pumunta sa sakayan at tingnan ang karatula sa harap ng jeep.",
-            `Hanapin ang "${d.jeep}" at kumpirmahin sa driver ang bababaan.`,
-            `Sabihin na papunta ka sa ${to} at itanong kung saan ka dapat bumaba.`,
-          ],
-
-          stepsEn: [
-
-            "Go to the jeepney stop and check the signboard at the front.",
-
-            `Look for “${d.jeep}” and confirm your drop-off point with the driver.`,
-
-            `Tell the driver you are going to ${to} and ask where you should get off.`,
-
-          ],
-        },
-      ];
-    }
-
-    if (distKm < 8) {
-      return [
-        {
-          id: "mura",
-          title: "💰 Tipid Mode",
-          price: Math.round(calcFare(distKm, "jeep")),
-          time: Math.round(baseMin * 1.3 + 8),
-          rides: "1 sakay",
-          tag: "JEEP",
-          vehicle: "Jeepney",
-          sign: d.jeep,
-          note: dirText,
-          steps: [
-            "Pumunta sa loading area ng jeep sa direksyong kailangan mo.",
-            `Hanapin ang karatulang "${d.jeep}" sa harap o windshield ng jeep.`,
-            "Itanong sa driver kung dadaan sa destination bago sumakay.",
-            `Sabihin na bababa ka sa ${to}; magtanong kung anong landmark ang dapat bantayan.`,
-          ],
-
-          stepsEn: [
-
-            "Go to the jeepney loading area heading in the direction you need.",
-
-            `Look for the signboard “${d.jeep}” at the front or windshield of the jeepney.`,
-
-            "Before boarding, ask the driver if the jeepney passes your destination.",
-
-            `Tell the driver where you will get off: ${to}. Ask which landmark to watch for.`,
-
-          ],
-        },
-        {
-          id: "mabilis",
-          title: "⚡ Express Mode",
-          price: Math.round(calcFare(distKm, "bus")),
-          time: Math.round(baseMin * 0.9 + 4),
-          rides: "1 sakay",
-          tag: "BUS",
-          vehicle: "Bus",
-          sign: d.bus,
-          note: "Isang bus lang",
-          steps: [
-            "Pumunta sa tamang bus stop o terminal; huwag sumakay sa gitna ng kalsada.",
-            `Basahin ang destination sign sa harap ng bus: "${d.bus}".`,
-            "Kumpirmahin sa konduktor o driver kung daraan sa destination mo.",
-            `Sabihin na bababa ka malapit sa ${to} at humingi ng paalala bago ang stop.`,
-          ],
-
-          stepsEn: [
-
-            "Go to the correct bus stop or terminal. Do not board in the middle of the road.",
-
-            `Read the destination sign at the front of the bus: “${d.bus}”.`,
-
-            "Ask the driver or conductor if the bus passes your destination.",
-
-            `Tell them you need to get off near ${to}, and ask for a reminder before the stop.`,
-
-          ],
-        },
-        {
-          id: "konti",
-          title: "🚌 Isang Sakay Lang",
-          price: Math.round(calcFare(distKm, "bus") + 5),
-          time: Math.round(baseMin * 1.1 + 3),
-          rides: "1 sakay",
-          tag: "BUS",
-          vehicle: "Bus",
-          sign: d.bus,
-          note: `Walang lipat • ${dirText}`,
-          steps: [
-            "Pumunta sa bus stop na may sakayan papunta sa direksyon mo.",
-            `Hanapin ang bus na may karatulang "${d.bus}".`,
-            "I-confirm sa konduktor ang bababaan at kung kailangan ng beep card o cash.",
-          ],
-
-          stepsEn: [
-
-            "Go to a bus stop with buses heading in your direction.",
-
-            `Look for a bus with the signboard “${d.bus}”.`,
-
-            "Ask the conductor where to get off and whether payment is by beep card or cash.",
-
-          ],
-        },
-      ];
-    }
-
-    return [
-      {
-        id: "mura",
-        title: "💰 Tipid Mode",
-        price: Math.round(calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt")),
-        time: Math.round((baseMin * 1.35 + 12) * traffic),
-        rides: "2 sakay",
-        tag: "JEEP + TRAIN",
-        vehicle: "Jeepney + Train",
-        sign: `${d.jeep} → ${d.train}`,
-        note: dirText,
-        steps: [
-          `Unang sakay: hanapin ang jeep na may karatulang "${d.jeep}".`,
-          "Kumpirmahin sa driver kung saan pinakamalapit na babaan para sa transfer.",
-          `Sumunod na sakay: ${d.train}. Sundin ang station signs at huwag magmadali sa paglipat.`,
-          `Pagdating sa huling bahagi ng biyahe, sundin ang directions papuntang ${to}.`,
-        ],
-
-        stepsEn: [
-
-          `First ride: look for a jeepney with the signboard “${d.jeep}”.`,
-
-          "Ask the driver where you should get off to transfer to your next ride.",
-
-          `Next ride: take ${d.train}. Follow the station signs and take your time when transferring.`,
-
-          `When you reach the last part of the trip, follow the directions to ${to}.`,
-
-        ],
-      },
-      {
-        id: "mabilis",
-        title: "⚡ Express Mode",
-        price: Math.round(calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus")),
-        time: Math.round((baseMin * 0.85 + 5) * traffic),
-        rides: "2 sakay",
-        tag: "TRAIN + BUS",
-        vehicle: "Train + Bus",
-        sign: `${d.train} → ${d.bus}`,
-        note: "Via EDSA",
-        steps: [
-          `Unang sakay: sundin ang station directions para sa ${d.train}.`,
-          "Bumaba sa tamang transfer station at sundin ang exit/transfer signs.",
-          `Ikalawang sakay: hanapin ang bus na may karatulang "${d.bus}".`,
-          `Kumpirmahin sa konduktor kung saan bababa para sa ${to}.`,
-        ],
-
-        stepsEn: [
-
-          `First ride: follow the station directions for ${d.train}.`,
-
-          "Get off at the correct transfer station and follow the exit or transfer signs.",
-
-          `Second ride: look for a bus with the signboard “${d.bus}”.`,
-
-          `Ask the conductor where to get off for ${to}.`,
-
-        ],
-      },
-      {
-        id: "konti",
-        title: "🚌 Isang Sakay Lang",
-        price: Math.round(calcFare(distKm, "bus") + 10),
-        time: Math.round((baseMin * 1.1 + 3) * traffic),
-        rides: "1 sakay",
-        tag: "BUS",
-        vehicle: "Bus",
-        sign: d.bus,
-        note: dirText,
-        steps: [
-          "Pumunta sa tamang bus stop o terminal.",
-          `Hanapin ang bus na may karatulang "${d.bus}".`,
-          "Kumpirmahin muna sa konduktor kung diretso ito sa destination mo.",
-          `Sabihin na bababa ka sa ${to} at humingi ng landmark o stop reminder.`,
-        ],
-
-        stepsEn: [
-
-          "Go to the correct bus stop or terminal.",
-
-          `Look for a bus with the signboard “${d.bus}”.`,
-
-          "Before boarding, ask the conductor if the bus goes directly to your destination.",
-
-          `Tell the conductor you need to get off at ${to}. Ask for a nearby landmark or a reminder before the stop.`,
-
-        ],
-      },
-    ];
-  }, [distKm, baseMin, from, to, fromPlace, toPlace]);
+  const routes = useMemo(
+    () =>
+      VERIFIED_ROUTES.filter(
+        (route) =>
+          route.from.toLowerCase() === from.toLowerCase() &&
+          route.to.toLowerCase() === to.toLowerCase()
+      ),
+    [from, to]
+  );
 
   const center: [number, number] = [
     (fromPlace.lat + toPlace.lat) / 2,
@@ -442,7 +158,7 @@ export default function SakayPage() {
           🗺️ Sakay Maps
         </h1>
         <p style={{ color: "#778092", margin: 0, lineHeight: 1.65, maxWidth: 680 }}>
-        Not sure which ride to take? Find your route and learn which signboard to look for at the front of the jeepney or bus.
+          Hindi sigurado kung anong sasakyan? Tingnan ang commute guide at kumpirmahin ang karatula sa harap ng jeep o bus.
         </p>
       </header>
 
@@ -547,7 +263,7 @@ export default function SakayPage() {
               >
                 <section style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 9, alignItems: "center" }}>
-                    <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 22, fontWeight: 500, color: "#172033", margin: 0 }}>🧭 Route Map</h2>
+                    <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 22, fontWeight: 500, color: "#172033", margin: 0 }}>🧭 Map Guide</h2>
                     <span style={{ color: "#64748b", fontSize: 12 }}>Origin → Destination</span>
                   </div>
                   <div style={{ height: "clamp(280px, 42vw, 430px)", borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0", background: "#e2e8f0" }}>
@@ -555,82 +271,68 @@ export default function SakayPage() {
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <Marker position={[fromPlace.lat, fromPlace.lng]}><Popup>📍 {from}</Popup></Marker>
                       <Marker position={[toPlace.lat, toPlace.lng]}><Popup>🏁 {to}</Popup></Marker>
-                      <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} color="#198754" weight={4} />
+                      <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} pathOptions={{ color: "#198754", weight: 4, dashArray: "8 8", opacity: 0.85 }} />
                     </MapContainer>
                   </div>
                   <p style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b", marginTop: 8 }}>
-                    Note: The map shows a straight line between locations, not the actual road route or exact boarding point.
+                    The dashed line is a visual guide connecting your selected places. It is not a verified road path or jeepney/bus route, and it does not identify an exact boarding point.
                   </p>
                 </section>
 
                 <section style={{ minWidth: 0 }}>
                   <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 22, fontWeight: 500, color: "#172033", margin: "0 0 12px" }}>🚍 Mga posibleng biyahe</h2>
+                  <div role="group" aria-label="Guide language" style={{ display: "inline-flex", padding: 3, gap: 3, borderRadius: 999, background: "#f2f1eb", border: "1px solid #e7e5df", marginBottom: 12 }}>
+                    <button type="button" onClick={() => setGuideLanguage("tl")} aria-pressed={guideLanguage === "tl"} style={{ border: 0, borderRadius: 999, padding: "7px 13px", background: guideLanguage === "tl" ? "#006747" : "transparent", color: guideLanguage === "tl" ? "#fff" : "#53605b", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Tagalog</button>
+                    <button type="button" onClick={() => setGuideLanguage("en")} aria-pressed={guideLanguage === "en"} style={{ border: 0, borderRadius: 999, padding: "7px 13px", background: guideLanguage === "en" ? "#006747" : "transparent", color: guideLanguage === "en" ? "#fff" : "#53605b", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>English</button>
+                  </div>
                   <div style={{ display: "grid", gap: 12 }}>
-                    {routes.map((r) => (
-                      <article key={r.id} style={{ border: "1px solid #e9e6df", borderRadius: 18, padding: 18, background: "#fff", boxShadow: "0 2px 6px rgba(20,30,25,.05)", minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
-                          <div>
-                            <h3 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 20, fontWeight: 500, color: "#172033", margin: "0 0 8px" }}>{r.title}</h3>
-                            <span style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: .5, color: "#006747", background: "#e8f3ee", padding: "5px 8px", borderRadius: 999 }}>
-                              {r.tag}
-                            </span>
-                          </div>
-                          <div style={{ textAlign: "right", fontSize: 13, color: "#475569" }}>
-                            <strong style={{ display: "block", color: "#111827", fontSize: 17 }}>₱{r.price}</strong>
-                            ~{r.time} min • {r.rides}
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: 14, borderRadius: 12, padding: 12, background: "#111827", color: "#fff" }}>
-                          <div style={{ color: "#cbd5e1", fontSize: 10, fontWeight: 800, letterSpacing: 1.1, marginBottom: 7 }}>
-                            HANAPIN SA HARAP NG {r.vehicle.toUpperCase()}
-                          </div>
-                          <div style={{ fontSize: "clamp(17px, 3vw, 23px)", lineHeight: 1.3, fontWeight: 900, overflowWrap: "anywhere" }}>
-                            {r.sign}
-                          </div>
-                          <div style={{ fontSize: 10, color: "#cbd5e1", marginTop: 8 }}>
-                            Sample text reference • i-confirm ang ruta sa driver o konduktor.
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: 12, fontSize: 13, color: "#475569" }}>
-                          <strong style={{ color: "#111827" }}>Direksyon:</strong> {r.note}
-                        </div>
-
-                        {beginnerMode && (
-                          <div style={{ marginTop: 13, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-                              <div style={{ fontWeight: 800, fontSize: 13, color: "#006747" }}>
-                                👣 {guideLanguage === "tl" ? "Paano ito sakyan?" : "How to take this route"}
-                              </div>
-                              <div role="group" aria-label="Guide language" style={{ display: "inline-flex", padding: 3, gap: 3, borderRadius: 999, background: "#f2f1eb", border: "1px solid #e7e5df" }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setGuideLanguage("tl")}
-                                  aria-pressed={guideLanguage === "tl"}
-                                  style={{ border: 0, borderRadius: 999, padding: "6px 12px", background: guideLanguage === "tl" ? "#006747" : "transparent", color: guideLanguage === "tl" ? "#fff" : "#53605b", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                                >Tagalog</button>
-                                <button
-                                  type="button"
-                                  onClick={() => setGuideLanguage("en")}
-                                  aria-pressed={guideLanguage === "en"}
-                                  style={{ border: 0, borderRadius: 999, padding: "6px 12px", background: guideLanguage === "en" ? "#006747" : "transparent", color: guideLanguage === "en" ? "#fff" : "#53605b", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                                >English</button>
-                              </div>
-                            </div>
-                            <ol style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 7, color: "#334155", fontSize: 13, lineHeight: 1.5 }}>
-                              {(guideLanguage === "tl" ? r.steps : r.stepsEn).map((step, index) => <li key={index}>{step}</li>)}
-                            </ol>
-                          </div>
-                        )}
+                    {routes.length === 0 ? (
+                      <article style={{ border: "1px solid #eadfbd", borderRadius: 18, padding: 18, background: "#fff9e9", color: "#735b2d", lineHeight: 1.65 }}>
+                        <strong style={{ display: "block", color: "#60491f", marginBottom: 8 }}>
+                          {guideLanguage === "tl"
+                            ? "Wala pang verified na commute route para sa eksaktong biyahe na ito."
+                            : "There is no verified commute route for this exact trip yet."}
+                        </strong>
+                        {guideLanguage === "tl"
+                          ? "Hindi kami maghuhula ng sasakyan, karatula, sakayan, babaan, pamasahe, o oras. Bago sumakay, itanong sa dispatcher o driver kung dumadaan mismo sa iyong destination at kumpirmahin ang karatula sa harap ng jeep o bus."
+                          : "We will not guess the vehicle, front signboard, boarding point, drop-off point, fare, or travel time. Before boarding, ask the dispatcher or driver whether the vehicle passes your exact destination and confirm the signboard at the front of the jeepney or bus."}
                       </article>
-                    ))}
+                    ) : (
+                      routes.map((r) => (
+                        <article key={r.id} style={{ border: "1px solid #e9e6df", borderRadius: 18, padding: 18, background: "#fff", minWidth: 0 }}>
+                          <h3 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 20, fontWeight: 500, color: "#172033", margin: "0 0 8px" }}>
+                            {r.mode}: {r.from} → {r.to}
+                          </h3>
+                          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+                            {guideLanguage === "tl" ? "Source:" : "Source:"} {r.sourceName} · {guideLanguage === "tl" ? "Sinuri:" : "Checked:"} {r.checkedOn}
+                          </div>
+                          <div style={{ marginTop: 12, borderRadius: 12, padding: 12, background: "#111827", color: "#fff" }}>
+                            <div style={{ color: "#cbd5e1", fontSize: 10, fontWeight: 800, letterSpacing: 1.1, marginBottom: 7 }}>
+                              {r.signboard ? (guideLanguage === "tl" ? "KARATULA SA HARAP NG SASAKYAN" : "FRONT SIGNBOARD") : (guideLanguage === "tl" ? "PAALALA SA KARATULA" : "SIGNBOARD NOTE")}
+                            </div>
+                            <div style={{ fontSize: "clamp(17px, 3vw, 23px)", lineHeight: 1.3, fontWeight: 900, overflowWrap: "anywhere" }}>
+                              {r.signboard || (guideLanguage === "tl" ? "Walang karatulang na-verify" : "No verified signboard")}
+                            </div>
+                          </div>
+                          <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>
+                            <strong>{guideLanguage === "tl" ? "Sakayan:" : "Boarding point:"}</strong> {r.boardingPoint}<br />
+                            <strong>{guideLanguage === "tl" ? "Babaan:" : "Drop-off point:"}</strong> {r.alightingPoint}
+                          </p>
+                          <ol style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 7, color: "#334155", fontSize: 13, lineHeight: 1.5 }}>
+                            {(guideLanguage === "tl" ? r.instructionsTl : r.instructionsEn).map((step, index) => <li key={index}>{step}</li>)}
+                          </ol>
+                          <a href={r.sourceUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 12, color: "#006747", fontWeight: 700, fontSize: 12 }}>
+                            {guideLanguage === "tl" ? "Tingnan ang source" : "View source"} ↗
+                          </a>
+                        </article>
+                      ))
+                    )}
                   </div>
                 </section>
               </div>
 
               <aside style={{ marginTop: 18, border: "1px solid #eadfbd", background: "#fff9e9", borderRadius: 14, padding: 14, color: "#735b2d", fontSize: 12, lineHeight: 1.6 }}>
-                <strong>Important notice:</strong> Routes, signboards, fares, and travel times shown here are estimates generated by the app’s sample logic. They are not verified live route information. Before boarding, check the signboard at the front of the vehicle and ask the driver or conductor if it passes your destination.
+                <strong>Important notice:</strong> This guide displays only routes entered in the verified route registry. Route and service information can change. Confirm the front signboard, destination, and boarding point with the driver or dispatcher before boarding.
               </aside>
             </>
           )}
@@ -642,7 +344,7 @@ export default function SakayPage() {
           <div style={{ fontSize: 38, marginBottom: 8 }}>🚌</div>
           <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", margin: "0 0 8px", fontSize: 25, fontWeight: 500, color: "#172033" }}>First time mag-commute?</h2>
           <p style={{ margin: "0 auto", maxWidth: 460, color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
-            Ilagay ang pinanggalingan at pupuntahan mo. Ipapakita namin ang mga posibleng sasakyan at ang karatulang dapat mong hanapin.
+            Ilagay ang pinanggalingan at pupuntahan mo. Ipapakita lang namin ang rutang may sapat na kumpirmasyon. Kung wala pa, sasabihin namin iyon kaysa manghula.
           </p>
         </section>
       )}
