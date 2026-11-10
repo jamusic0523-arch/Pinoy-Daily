@@ -1,16 +1,37 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+function getFireColor(streak: number) {
+  if (streak >= 365) return "#FF00FF";
+  if (streak >= 300) return "#FFFFFF";
+  if (streak >= 250) return "#00E5FF";
+  if (streak >= 200) return "#FF4081";
+  if (streak >= 150) return "#AA00FF";
+  if (streak >= 100) return "#2979FF";
+  if (streak >= 50) return "#00E676";
+  if (streak >= 30) return "#FFD700";
+  return "#FF7A00";
+}
 
+function FlameIcon({ color, size = 22 }: { color: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ verticalAlign: 'middle', display: 'inline-block' }}>
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  );
+}
 export default function Page() {
   const [todayStr, setTodayStr] = useState("");
   const [gasTotal, setGasTotal] = useState(0);
   const [commuteTotal, setCommuteTotal] = useState(0);
   const [displayName, setDisplayName] = useState("Kaibigan");
+  const [streak, setStreak] = useState(1);
+const [fireOn, setFireOn] = useState(true);
 
   useEffect(() => {
     const today = new Date().toLocaleDateString();
     setTodayStr(today);
+    background: getFireColor(streak)
     fetch("/api/auth/me").then(r => r.json()).then(d => {
       if (d?.user?.name) setDisplayName(d.user.name);
     }).catch(() => {});
@@ -43,7 +64,7 @@ else greeting = "Magandang Gabi";
   return (
     <div className="space-y-6">
       <div>
-      <h1 className="text-4xl font-serif font-normal tracking-tight">{greeting}, {displayName}.</h1>
+      <h1 className="text-4xl font-serif font-normal tracking-tight">{greeting}, {displayName}. {fireOn && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', verticalAlign: 'middle', fontSize: '20px' }}><FlameIcon color={getFireColor(streak)} size={18} /> {streak}</span>}</h1>
         <p className="text-sm text-gray-500 mt-1">Your everyday tools are ready.</p>
       </div>
 
