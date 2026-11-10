@@ -50,7 +50,7 @@ type VerifiedRoute = {
   id: string;
   from: string;
   to: string;
-  mode: "Jeepney" | "Modern jeepney" | "Bus" | "UV Express" | "LRT-1" | "LRT-2" | "MRT-3";
+  mode: "Jeepney" | "Modern jeepney" | "Bus" | "UV Express" | "LRT-1" | "LRT-2" | "MRT-3" | "Train transfer" | "EDSA Busway" | "Walking / local connection";
   vehicle: string;
   signboard?: string;
   boardingPoint: string;
@@ -60,12 +60,184 @@ type VerifiedRoute = {
   sourceName: string;
   sourceUrl: string;
   checkedOn: string;
+  confidence: "verified" | "possible";
 };
 
-const VERIFIED_ROUTES: VerifiedRoute[] = [
-  // Add only route records with a source that confirms the current service,
-  // direction, boarding/alighting points, and (for road vehicles) signboard.
+// Rail station order is based on the current operator station lists.
+// The EDSA Busway sequence is a secondary-source reference and is therefore
+// always labelled POSSIBLE, never as an officially verified jeep/bus route.
+const RAIL_LINES: { id: string; mode: "LRT-1" | "LRT-2" | "MRT-3" | "EDSA Busway"; stations: string[] }[] = [
+  { id: "MRT-3", mode: "MRT-3", stations: ["North Avenue", "Quezon Avenue", "GMA Kamuning", "Araneta Center-Cubao", "Santolan-Annapolis", "Ortigas", "Shaw Boulevard", "Boni", "Guadalupe", "Buendia", "Ayala", "Magallanes", "Taft Avenue"] },
+  { id: "LRT-2", mode: "LRT-2", stations: ["Recto", "Legarda", "Pureza", "V. Mapa", "J. Ruiz", "Gilmore", "Betty Go-Belmonte", "Araneta Center-Cubao", "Anonas", "Katipunan", "Santolan", "Marikina-Pasig", "Antipolo"] },
+  { id: "LRT-1", mode: "LRT-1", stations: ["Fernando Poe Jr.", "Balintawak", "Monumento", "5th Avenue", "R. Papa", "Abad Santos", "Blumentritt", "Tayuman", "Bambang", "Doroteo Jose", "Carriedo", "Central Terminal", "United Nations", "Pedro Gil", "Quirino", "Vito Cruz", "Gil Puyat", "Libertad", "EDSA", "Baclaran", "Redemptorist-Aseana", "MIA Road", "PITX", "Ninoy Aquino", "Dr. Santos"] },
+  { id: "EDSA Busway", mode: "EDSA Busway", stations: ["Monumento", "Bagong Barrio", "Balintawak", "Kaingin", "Roosevelt", "SM North EDSA", "North Avenue", "Philam", "Quezon Avenue", "Kamuning", "Nepa Q-Mart", "Main Avenue", "Santolan", "Ortigas", "Guadalupe", "Buendia", "Ayala", "Tramo", "Taft Avenue", "Roxas Boulevard", "SM Mall of Asia", "BVA", "Macapagal-Aseana", "PITX"] },
 ];
+
+// Landmark-to-nearest-useful-station associations. These are approximate
+// access suggestions, not surveyed walking paths or exact station entrances.
+const PLACE_STATION: Record<string, string> = {
+  "FEU Manila": "LRT-2:Legarda",
+  "UE Manila - Recto": "LRT-2:Recto",
+  "NU Manila - Sampaloc": "LRT-2:Legarda",
+  "San Beda University - Mendiola": "LRT-2:Legarda",
+  "Mapua University - Intramuros": "LRT-1:Central Terminal",
+  "Adamson University": "LRT-1:United Nations",
+  "UST - Espana": "LRT-2:Legarda",
+  "UP Diliman": "LRT-2:Katipunan",
+  "Ateneo de Manila": "LRT-2:Katipunan",
+  "PUP Manila - Sta. Mesa": "LRT-2:Pureza",
+  "TUP Manila": "LRT-1:United Nations",
+  "PLM - Intramuros": "LRT-1:Central Terminal",
+  "SM North EDSA": "MRT-3:North Avenue",
+  "Mall of Asia (MOA)": "EDSA Busway:SM Mall of Asia",
+  "SM Manila": "LRT-1:Central Terminal",
+  "Robinsons Manila": "LRT-1:Pedro Gil",
+  "SM Megamall": "MRT-3:Ortigas",
+  "Greenbelt / Ayala": "MRT-3:Ayala",
+  "Quiapo": "LRT-1:Carriedo",
+  "Sampaloc": "LRT-2:Legarda",
+  "Divisoria": "LRT-2:Recto",
+  "Intramuros": "LRT-1:Central Terminal",
+  "Cubao": "MRT-3:Araneta Center-Cubao",
+  "Recto": "LRT-2:Recto",
+  "Baclaran": "LRT-1:Baclaran",
+  "Ortigas": "MRT-3:Ortigas",
+  "Ayala / Makati": "MRT-3:Ayala",
+  "Pasay": "MRT-3:Taft Avenue",
+  "Manila City Hall": "LRT-1:Central Terminal",
+  "Espana": "LRT-2:Legarda",
+  "Mendiola": "LRT-2:Legarda",
+};
+
+const TRANSFERS: [string, string][] = [
+  ["MRT-3:Araneta Center-Cubao", "LRT-2:Araneta Center-Cubao"],
+  ["MRT-3:Taft Avenue", "LRT-1:EDSA"],
+  ["LRT-1:Doroteo Jose", "LRT-2:Recto"],
+  ["EDSA Busway:North Avenue", "MRT-3:North Avenue"],
+  ["EDSA Busway:Taft Avenue", "MRT-3:Taft Avenue"],
+  ["EDSA Busway:Ortigas", "MRT-3:Ortigas"],
+  ["EDSA Busway:Guadalupe", "MRT-3:Guadalupe"],
+  ["EDSA Busway:Ayala", "MRT-3:Ayala"],
+  ["EDSA Busway:PITX", "LRT-1:PITX"],
+];
+
+const VERIFIED_ROUTES: VerifiedRoute[] = [];
+
+function buildPossibleRoute(fromName: string, toName: string): VerifiedRoute | null {
+  const start = PLACE_STATION[fromName];
+  const end = PLACE_STATION[toName];
+  if (!start || !end) return null;
+  if (start === end) {
+    const station = start.slice(start.indexOf(":") + 1);
+    const sourceUrl = start.startsWith("MRT-3:") ? "https://www.dotrmrt3.gov.ph/about-us" : "https://www.lrta.gov.ph/railway-operations/";
+    return {
+      id: `possible-walk-${fromName}-${toName}`,
+      from: fromName,
+      to: toName,
+      mode: "Walking / local connection",
+      vehicle: "Walk; no train ride suggested",
+      boardingPoint: `${station} area (approximate landmark association)`,
+      alightingPoint: `Walk to ${toName}`,
+      instructionsTl: [`Ang ${fromName} at ${toName} ay naka-associate sa parehong ${station} station area. Hindi ibig sabihin nito na kailangan sumakay ng tren.`, "Sundin ang pedestrian signs at magtanong sa guard kung saan ang ligtas na daan. Hindi pa verified ang eksaktong walking path o distansya."],
+      instructionsEn: [`${fromName} and ${toName} are associated with the same ${station} station area. This does not mean you need to take a train.`, "Follow pedestrian signs and ask security for a safe walking route. The exact walking path and distance have not been verified."],
+      sourceName: "Approximate landmark-to-station association; pedestrian route not verified",
+      sourceUrl,
+      checkedOn: "11 Nov 2026",
+      confidence: "possible",
+    };
+  }
+
+  const graph = new Map<string, string[]>();
+  const addEdge = (a: string, b: string) => {
+    graph.set(a, [...(graph.get(a) ?? []), b]);
+    graph.set(b, [...(graph.get(b) ?? []), a]);
+  };
+  for (const line of RAIL_LINES) {
+    line.stations.forEach((station, index) => {
+      const node = `${line.id}:${station}`;
+      graph.set(node, graph.get(node) ?? []);
+      if (index > 0) addEdge(`${line.id}:${line.stations[index - 1]}`, node);
+    });
+  }
+  TRANSFERS.forEach(([a, b]) => addEdge(a, b));
+
+  const queue: string[][] = [[start]];
+  const visited = new Set([start]);
+  let path: string[] | null = null;
+  while (queue.length) {
+    const current = queue.shift()!;
+    const last = current[current.length - 1];
+    if (last === end) { path = current; break; }
+    for (const next of graph.get(last) ?? []) {
+      if (!visited.has(next)) { visited.add(next); queue.push([...current, next]); }
+    }
+  }
+  if (!path) return null;
+
+  const groups: { line: string; stations: string[] }[] = [];
+  for (const node of path) {
+    const split = node.indexOf(":");
+    const line = node.slice(0, split);
+    const station = node.slice(split + 1);
+    const last = groups[groups.length - 1];
+    if (last && last.line === line) last.stations.push(station);
+    else groups.push({ line, stations: [station] });
+  }
+  const boardStation = start.slice(start.indexOf(":") + 1);
+  const exitStation = end.slice(end.indexOf(":") + 1);
+  const firstLine = groups[0].line;
+  const lastLine = groups[groups.length - 1].line;
+  const multiLine = groups.length > 1;
+  const mode = multiLine ? "Train transfer" : firstLine as VerifiedRoute["mode"];
+  const instructionsTl = [
+    fromName === "UP Diliman"
+      ? "Mula sa UP Diliman, magtanong sa dispatcher kung saan sasakay ng jeep papuntang Katipunan Station. Hindi pa verified ang eksaktong karatula at sakayan; kumpirmahin sa driver bago sumakay."
+      : `Mula sa ${fromName}, pumunta sa ${boardStation} station. Ang station access na ito ay mungkahi lamang; sundan ang pedestrian signs at tiyakin ang tamang entrance.`,
+    ...groups.map((g, i) => {
+      const forward = g.stations.length < 2 || RAIL_LINES.find(l => l.id === g.line)!.stations.indexOf(g.stations[g.stations.length - 1]) > RAIL_LINES.find(l => l.id === g.line)!.stations.indexOf(g.stations[0]);
+      const direction = g.line === "MRT-3" ? (forward ? "Taft Avenue" : "North Avenue") : g.line === "LRT-2" ? (forward ? "Antipolo" : "Recto") : g.line === "LRT-1" ? (forward ? "Dr. Santos" : "Fernando Poe Jr.") : (forward ? "PITX" : "Monumento");
+      return i === 0
+        ? `Sumakay sa ${g.line} papunta sa direksiyong ${direction}. Mga station na dadaanan: ${g.stations.join(" → ")}.`
+        : `Transfer sa ${g.line} at sumakay papunta sa ${direction}. Mga station: ${g.stations.join(" → ")}.`;
+    }),
+    toName === "UP Diliman"
+      ? "Bumaba sa Katipunan Station at magtanong sa dispatcher kung saan sasakay ng jeep papasok sa UP Diliman. Kumpirmahin ang karatula at kung saang UP gate ka ibababa."
+      : `Bumaba sa ${exitStation} at maglakad papuntang ${toName}. I-check ang exit signs o magtanong sa station staff dahil hindi pa verified ang eksaktong walking path at exit.`,
+  ];
+  const instructionsEn = [
+    fromName === "UP Diliman"
+      ? "From UP Diliman, ask the dispatcher where to board a jeepney to Katipunan Station. The exact signboard and boarding point are not verified; confirm with the driver before boarding."
+      : `From ${fromName}, go to ${boardStation} station. This station access is a suggestion; follow pedestrian signs and confirm the correct entrance.`,
+    ...groups.map((g, i) => {
+      const lineData = RAIL_LINES.find(l => l.id === g.line)!;
+      const forward = g.stations.length < 2 || lineData.stations.indexOf(g.stations[g.stations.length - 1]) > lineData.stations.indexOf(g.stations[0]);
+      const direction = g.line === "MRT-3" ? (forward ? "Taft Avenue" : "North Avenue") : g.line === "LRT-2" ? (forward ? "Antipolo" : "Recto") : g.line === "LRT-1" ? (forward ? "Dr. Santos" : "Fernando Poe Jr.") : (forward ? "PITX" : "Monumento");
+      return i === 0
+        ? `Board ${g.line} toward ${direction}. Stations along this segment: ${g.stations.join(" → ")}.`
+        : `Transfer to ${g.line} and board toward ${direction}. Stations: ${g.stations.join(" → ")}.`;
+    }),
+    toName === "UP Diliman"
+      ? "Get off at Katipunan Station and ask the dispatcher where to board a jeepney going into UP Diliman. Confirm the signboard and which UP gate it serves."
+      : `Get off at ${exitStation} and walk to ${toName}. Check exit signs or ask station staff; the exact walking path and exit have not been verified.`,
+  ];
+  const sourceUrl = groups.some(g => g.line === "EDSA Busway") ? "https://edsabus.com/route-map" : groups.some(g => g.line === "MRT-3") ? "https://www.dotrmrt3.gov.ph/about-us" : "https://www.lrta.gov.ph/railway-operations/";
+  const sourceName = groups.some(g => g.line === "EDSA Busway") ? "EDSA Busway route map (secondary source) + operator station information" : "DOTr-MRT3 / LRTA official station information";
+  return {
+    id: `possible-${fromName}-${toName}`,
+    from: fromName,
+    to: toName,
+    mode,
+    vehicle: "Train / busway combination",
+    boardingPoint: `${boardStation} station (approximate landmark access)`,
+    alightingPoint: `${exitStation} station (approximate landmark access)`,
+    instructionsTl,
+    instructionsEn,
+    sourceName,
+    sourceUrl,
+    checkedOn: "11 Nov 2026",
+    confidence: "possible",
+  };
+}
 
 export default function SakayPage() {
   const [from, setFrom] = useState("");
@@ -87,11 +259,11 @@ export default function SakayPage() {
     });
   }, []);
 
-  const fromPlace = PLACES.find((p) => p.name === from) ?? PLACES[0];
-  const toPlace = PLACES.find((p) => p.name === to) ?? PLACES[1];
+  const fromPlace = PLACES.find((p) => p.name === from) ?? null;
+  const toPlace = PLACES.find((p) => p.name === to) ?? null;
 
   const distKm = useMemo(() => {
-    if (!from || !to) return 0;
+    if (!fromPlace || !toPlace) return 0;
     const R = 6371;
     const dLat = ((toPlace.lat - fromPlace.lat) * Math.PI) / 180;
     const dLng = ((toPlace.lng - fromPlace.lng) * Math.PI) / 180;
@@ -103,20 +275,18 @@ export default function SakayPage() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, [from, to, fromPlace, toPlace]);
 
-  const routes = useMemo(
-    () =>
-      VERIFIED_ROUTES.filter(
-        (route) =>
-          route.from.toLowerCase() === from.toLowerCase() &&
-          route.to.toLowerCase() === to.toLowerCase()
-      ),
-    [from, to]
-  );
+  const routes = useMemo(() => {
+    const exactVerified = VERIFIED_ROUTES.filter(
+      (route) => route.from.toLowerCase() === from.toLowerCase() && route.to.toLowerCase() === to.toLowerCase()
+    );
+    if (exactVerified.length) return exactVerified;
+    const possible = buildPossibleRoute(from, to);
+    return possible ? [possible] : [];
+  }, [from, to]);
 
-  const center: [number, number] = [
-    (fromPlace.lat + toPlace.lat) / 2,
-    (fromPlace.lng + toPlace.lng) / 2,
-  ];
+  const center: [number, number] = fromPlace && toPlace
+    ? [(fromPlace.lat + toPlace.lat) / 2, (fromPlace.lng + toPlace.lng) / 2]
+    : [14.5995, 120.9842];
 
   const inputStyle: CSSProperties = {
     width: "100%",
@@ -224,7 +394,7 @@ export default function SakayPage() {
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: "#64748b" }}>
-          {from && to ? `📏 Tinatayang tuwid na distansya: ${distKm.toFixed(1)} km` : "Pumili ng pinanggalingan at pupuntahan para makita ang gabay."}
+          {fromPlace && toPlace ? `📏 Tinatayang tuwid na distansya: ${distKm.toFixed(1)} km` : "Pumili ng eksaktong lugar mula sa suggestions para makita ang gabay."}
         </div>
         <button
           type="button"
@@ -253,6 +423,7 @@ export default function SakayPage() {
             </div>
           ) : (
             <>
+              {fromPlace && toPlace ? <>
               <div
                 style={{
                   display: "grid",
@@ -294,15 +465,20 @@ export default function SakayPage() {
                             : "There is no verified commute route for this exact trip yet."}
                         </strong>
                         {guideLanguage === "tl"
-                          ? "Hindi kami maghuhula ng sasakyan, karatula, sakayan, babaan, pamasahe, o oras. Bago sumakay, itanong sa dispatcher o driver kung dumadaan mismo sa iyong destination at kumpirmahin ang karatula sa harap ng jeep o bus."
-                          : "We will not guess the vehicle, front signboard, boarding point, drop-off point, fare, or travel time. Before boarding, ask the dispatcher or driver whether the vehicle passes your exact destination and confirm the signboard at the front of the jeepney or bus."}
+                          ? "Wala pang sapat na impormasyon para magbigay ng ligtas na station-based route sa eksaktong biyahe na ito. Posibleng kailangan ng jeep, bus o UV Express, pero hindi kami mag-iimbento ng karatula. Itanong sa dispatcher kung anong sasakyan ang dadaan mismo sa destination at kumpirmahin ang karatula sa harap bago sumakay."
+                          : "There is not enough information yet to suggest a safe station-based route for this exact trip. A jeepney, bus, or UV Express may be needed, but we will not invent a signboard. Ask the dispatcher which vehicle passes your destination and confirm the front signboard before boarding."}
                       </article>
                     ) : (
                       routes.map((r) => (
                         <article key={r.id} style={{ border: "1px solid #e9e6df", borderRadius: 18, padding: 18, background: "#fff", minWidth: 0 }}>
-                          <h3 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 20, fontWeight: 500, color: "#172033", margin: "0 0 8px" }}>
-                            {r.mode}: {r.from} → {r.to}
-                          </h3>
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                            <h3 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 20, fontWeight: 500, color: "#172033", margin: 0 }}>
+                              {r.mode}: {r.from} → {r.to}
+                            </h3>
+                            <span style={{ borderRadius: 999, padding: "4px 9px", fontSize: 10, fontWeight: 800, background: r.confidence === "verified" ? "#e7f6ed" : "#fff3d6", color: r.confidence === "verified" ? "#17663a" : "#855b0a" }}>
+                              {r.confidence === "verified" ? (guideLanguage === "tl" ? "KUMPIRMADO" : "VERIFIED") : (guideLanguage === "tl" ? "POSIBLENG RUTA" : "POSSIBLE ROUTE")}
+                            </span>
+                          </div>
                           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
                             {guideLanguage === "tl" ? "Source:" : "Source:"} {r.sourceName} · {guideLanguage === "tl" ? "Sinuri:" : "Checked:"} {r.checkedOn}
                           </div>
@@ -332,8 +508,11 @@ export default function SakayPage() {
               </div>
 
               <aside style={{ marginTop: 18, border: "1px solid #eadfbd", background: "#fff9e9", borderRadius: 14, padding: 14, color: "#735b2d", fontSize: 12, lineHeight: 1.6 }}>
-                <strong>Important notice:</strong> This guide displays only routes entered in the verified route registry. Route and service information can change. Confirm the front signboard, destination, and boarding point with the driver or dispatcher before boarding.
+                <strong>{guideLanguage === "tl" ? "Paalala sa accuracy:" : "Accuracy notice:"}</strong> {guideLanguage === "tl" ? "Ang KUMPIRMADO ay may source para sa route/station sequence. Ang POSIBLENG RUTA ay mungkahing station-based connection; hindi pa kumpirmado ang eksaktong lakad, entrance/exit, o last-mile na jeep/bus. Para sa jeep at bus, huwag sumakay hangga't hindi tugma ang karatula sa harap at hindi kinukumpirma ng driver/dispatcher na dadaan sa destination." : "VERIFIED means the route/station sequence has a source. POSSIBLE ROUTE is a suggested station-based connection; exact walking access, entrances/exits, and last-mile jeep/bus details are not confirmed. For jeepneys and buses, board only after the front signboard matches and the driver/dispatcher confirms the destination."}
               </aside>
+              </> : <div style={{ padding: 16, borderRadius: 14, background: "#fff8e8", color: "#8a4b12", marginBottom: 16 }}>
+                {guideLanguage === "tl" ? "Piliin ang eksaktong pinanggalingan at destination mula sa dropdown suggestions. Hindi kami magpapakita ng mapa o route para sa hindi kilalang lokasyon." : "Choose the exact origin and destination from the suggestions. We will not show a map or route for an unrecognized location."}
+              </div>}
             </>
           )}
         </>
