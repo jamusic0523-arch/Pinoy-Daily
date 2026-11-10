@@ -150,11 +150,25 @@ export default function SakayPage() {
     <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
       <h1 style={{ fontSize: 22, fontWeight: "bold" }}>🗺️ Sakay</h1>
 
-      <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Saan ka manggagaling? Ex: FEU Manila" list="places" style={{ width: "100%", padding: 12, marginBottom: 8, borderRadius: 10, border: "1px solid #ddd" }} />
-      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Saan ka pupunta? Ex: UE Manila - Recto" list="places" style={{ width: "100%", padding: 12, marginBottom: 12, borderRadius: 10, border: "1px solid #ddd" }} />
-      <datalist id="places">
-        {PLACES.map((p) => (<option key={p.name} value={p.name} />))}
-      </datalist>
+      {/* FROM - may sariling choices pang-phone */}
+<div style={{ position: "relative", marginBottom: 8 }}>
+  <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Saan ka manggagaling? Ex: FEU Manila" style={{ width: "100%", padding: 12, borderRadius: 10, border: "1px solid #ddd" }} />
+  {from && PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()) && p.name !== from).slice(0, 5).map(p => (
+    <div key={p.name} onClick={() => setFrom(p.name)} style={{ padding: 12, background: "#fff", borderBottom: "1px solid #eee", cursor: "pointer" }}>
+      📍 {p.name}
+    </div>
+  ))}
+</div>
+
+{/* TO - may sariling choices pang-phone */}
+<div style={{ position: "relative", marginBottom: 12 }}>
+  <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Saan ka pupunta? Ex: UE Manila - Recto" style={{ width: "100%", padding: 12, borderRadius: 10, border: "1px solid #ddd" }} />
+  {to && PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()) && p.name !== to).slice(0, 5).map(p => (
+    <div key={p.name} onClick={() => setTo(p.name)} style={{ padding: 12, background: "#fff", borderBottom: "1px solid #eee", cursor: "pointer" }}>
+      🏁 {p.name}
+    </div>
+  ))}
+</div>
 
       {from && to && (
         <>
