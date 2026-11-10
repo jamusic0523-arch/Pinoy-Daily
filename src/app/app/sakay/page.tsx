@@ -302,13 +302,13 @@ export default function SakayPage() {
   const inputStyle: CSSProperties = {
     width: "100%",
     boxSizing: "border-box",
-    padding: "14px 15px",
-    borderRadius: 12,
+    padding: "15px 17px",
+    borderRadius: 999,
     border: "1px solid #d1d5db",
     background: "#fff",
     color: "#111827",
     fontSize: 15,
-    outlineColor: "#16a34a",
+    outlineColor: "#006747",
   };
 
   const suggestionStyle: CSSProperties = {
@@ -324,21 +324,21 @@ export default function SakayPage() {
     <main
       style={{
         width: "100%",
-        maxWidth: 1180,
+        maxWidth: 780,
         margin: "0 auto",
         padding: "clamp(14px, 3vw, 28px)",
         boxSizing: "border-box",
-        color: "#111827",
+        color: "#172033",
       }}
     >
       <header style={{ marginBottom: 22 }}>
-        <div style={{ color: "#15803d", fontWeight: 800, fontSize: 12, letterSpacing: 1.4 }}>
+        <div style={{ color: "#006747", fontWeight: 800, fontSize: 12, letterSpacing: 1.4 }}>
           PINOY DAILY • COMMUTE COMPANION
         </div>
-        <h1 style={{ fontSize: "clamp(27px, 4vw, 38px)", lineHeight: 1.1, margin: "8px 0" }}>
+        <h1 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: "clamp(30px, 4vw, 40px)", lineHeight: 1.1, margin: "8px 0", color: "#172033", fontWeight: 500 }}>
           🗺️ Sakay Maps
         </h1>
-        <p style={{ color: "#64748b", margin: 0, lineHeight: 1.6, maxWidth: 680 }}>
+        <p style={{ color: "#778092", margin: 0, lineHeight: 1.65, maxWidth: 680 }}>
           Hindi sigurado kung anong sasakyan? Hanapin ang ruta at alamin kung anong
           karatula ang dapat mong tingnan sa harap ng jeep o bus.
         </p>
@@ -349,10 +349,11 @@ export default function SakayPage() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
           gap: 12,
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          borderRadius: 18,
-          padding: 16,
+          background: "#fff",
+          border: "1px solid #e7e5df",
+          borderRadius: 20,
+          padding: "clamp(18px, 3vw, 26px)",
+          boxShadow: "0 2px 5px rgba(20, 30, 25, .06)",
           marginBottom: 18,
         }}
       >
@@ -412,9 +413,9 @@ export default function SakayPage() {
           onClick={() => setBeginnerMode((value) => !value)}
           aria-pressed={beginnerMode}
           style={{
-            border: "1px solid #bbf7d0",
-            background: beginnerMode ? "#dcfce7" : "#fff",
-            color: "#166534",
+            border: "1px solid #006747",
+            background: beginnerMode ? "#006747" : "#fff",
+            color: beginnerMode ? "#fff" : "#006747",
             borderRadius: 999,
             padding: "9px 13px",
             fontWeight: 700,
@@ -429,7 +430,7 @@ export default function SakayPage() {
       {from && to && (
         <>
           {from === to ? (
-            <div style={{ padding: 16, borderRadius: 14, background: "#fff7ed", color: "#9a3412", marginBottom: 16 }}>
+            <div style={{ padding: 16, borderRadius: 14, background: "#fff8e8", color: "#8a4b12", marginBottom: 16 }}>
               Magkaiba dapat ang pinanggalingan at destination mo.
             </div>
           ) : (
@@ -444,7 +445,7 @@ export default function SakayPage() {
               >
                 <section style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 9, alignItems: "center" }}>
-                    <h2 style={{ fontSize: 17, margin: 0 }}>🧭 Route Map</h2>
+                    <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 22, fontWeight: 500, color: "#172033", margin: 0 }}>🧭 Route Map</h2>
                     <span style={{ color: "#64748b", fontSize: 12 }}>Origin → Destination</span>
                   </div>
                   <div style={{ height: "clamp(280px, 42vw, 430px)", borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0", background: "#e2e8f0" }}>
@@ -461,14 +462,14 @@ export default function SakayPage() {
                 </section>
 
                 <section style={{ minWidth: 0 }}>
-                  <h2 style={{ fontSize: 17, margin: "0 0 10px" }}>🚍 Mga posibleng biyahe</h2>
+                  <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 22, fontWeight: 500, color: "#172033", margin: "0 0 12px" }}>🚍 Mga posibleng biyahe</h2>
                   <div style={{ display: "grid", gap: 12 }}>
                     {routes.map((r) => (
-                      <article key={r.id} style={{ border: "1px solid #e2e8f0", borderRadius: 16, padding: 15, background: "#fff", boxShadow: "0 4px 14px rgba(15,23,42,.04)", minWidth: 0 }}>
+                      <article key={r.id} style={{ border: "1px solid #e9e6df", borderRadius: 18, padding: 18, background: "#fff", boxShadow: "0 2px 6px rgba(20,30,25,.05)", minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
                           <div>
-                            <h3 style={{ fontSize: 16, margin: "0 0 5px" }}>{r.title}</h3>
-                            <span style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: .5, color: "#166534", background: "#dcfce7", padding: "5px 8px", borderRadius: 999 }}>
+                            <h3 style={{ fontFamily: "Georgia, Times New Roman, serif", fontSize: 20, fontWeight: 500, color: "#172033", margin: "0 0 8px" }}>{r.title}</h3>
+                            <span style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: .5, color: "#006747", background: "#e8f3ee", padding: "5px 8px", borderRadius: 999 }}>
                               {r.tag}
                             </span>
                           </div>
@@ -496,7 +497,7 @@ export default function SakayPage() {
 
                         {beginnerMode && (
                           <div style={{ marginTop: 13, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
-                            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: "#166534" }}>
+                            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: "#006747" }}>
                               👣 Paano ito sakyan?
                             </div>
                             <ol style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 7, color: "#334155", fontSize: 13, lineHeight: 1.5 }}>
@@ -510,7 +511,7 @@ export default function SakayPage() {
                 </section>
               </div>
 
-              <aside style={{ marginTop: 18, border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 14, padding: 14, color: "#78350f", fontSize: 12, lineHeight: 1.6 }}>
+              <aside style={{ marginTop: 18, border: "1px solid #eadfbd", background: "#fff9e9", borderRadius: 14, padding: 14, color: "#735b2d", fontSize: 12, lineHeight: 1.6 }}>
                 <strong>Importanteng paalala:</strong> Ang mga ruta, karatula, pamasahe, at oras dito ay generated estimates mula sa kasalukuyang sample logic ng app. Hindi pa ito verified na live route information. Bago sumakay, basahin ang karatula sa harap ng sasakyan at kumpirmahin sa driver o konduktor kung dadaan ito sa iyong destination.
               </aside>
             </>
@@ -519,9 +520,9 @@ export default function SakayPage() {
       )}
 
       {!from && !to && (
-        <section style={{ border: "1px dashed #cbd5e1", borderRadius: 18, padding: "clamp(22px, 5vw, 38px)", textAlign: "center", background: "#f8fafc" }}>
+        <section style={{ border: "1px dashed #d8d5ca", borderRadius: 20, padding: "clamp(24px, 5vw, 40px)", textAlign: "center", background: "#fff" }}>
           <div style={{ fontSize: 38, marginBottom: 8 }}>🚌</div>
-          <h2 style={{ margin: "0 0 8px", fontSize: 19 }}>First time mag-commute?</h2>
+          <h2 style={{ fontFamily: "Georgia, Times New Roman, serif", margin: "0 0 8px", fontSize: 25, fontWeight: 500, color: "#172033" }}>First time mag-commute?</h2>
           <p style={{ margin: "0 auto", maxWidth: 460, color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
             Ilagay ang pinanggalingan at pupuntahan mo. Ipapakita namin ang mga posibleng sasakyan at ang karatulang dapat mong hanapin.
           </p>
