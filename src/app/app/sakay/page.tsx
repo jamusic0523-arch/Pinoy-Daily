@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
@@ -8,9 +8,7 @@ const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr:
 const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 const Polyline = dynamic(() => import("react-leaflet").then(m => m.Polyline), { ssr: false });
 
-// --- PLACES + SCHOOLS ---
 const PLACES = [
-  // SCHOOLS
   { name: "FEU Manila", lat: 14.6038, lng: 120.9866 },
   { name: "UE Manila - Recto", lat: 14.6045, lng: 120.9860 },
   { name: "NU Manila - Sampaloc", lat: 14.6058, lng: 120.9875 },
@@ -23,14 +21,12 @@ const PLACES = [
   { name: "PUP Manila - Sta. Mesa", lat: 14.6000, lng: 121.0100 },
   { name: "TUP Manila", lat: 14.5870, lng: 120.9840 },
   { name: "PLM - Intramuros", lat: 14.5880, lng: 120.9720 },
-  // MALLS / PLACES
   { name: "SM North EDSA", lat: 14.6567, lng: 121.0297 },
   { name: "Mall of Asia (MOA)", lat: 14.5350, lng: 120.9820 },
   { name: "SM Manila", lat: 14.5890, lng: 120.9810 },
   { name: "Robinsons Manila", lat: 14.5820, lng: 120.9810 },
   { name: "SM Megamall", lat: 14.5840, lng: 121.0570 },
   { name: "Greenbelt / Ayala", lat: 14.5540, lng: 121.0240 },
-  // COMMUTE HUBS
   { name: "Quiapo", lat: 14.5995, lng: 120.9842 },
   { name: "Sampaloc", lat: 14.6075, lng: 120.9968 },
   { name: "Divisoria", lat: 14.6050, lng: 120.9730 },
@@ -52,58 +48,60 @@ function calcFare(km: number, type: "jeep" | "mrt" | "bus") {
   return 15 + km * 1.5;
 }
 
-// --- TOTOOONG KARATULA ---
 function getSakayDetails(fromName: string, toName: string, distKm: number) {
   const f = fromName.toLowerCase();
   const t = toName.toLowerCase();
-
-  // SPECIFIC COMBO - FEU / MORAYTA
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("north")) return { jeepSign: "Morayta - SM North via Espana", trainLine: "LRT-2 (Recto - Cubao) → MRT-3 (Cubao - North Ave)", busSign: "Morayta - SM North via Quezon Ave" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("quiapo")) return { jeepSign: "Morayta - Quiapo", trainLine: "Jeep lang, lakad na lang", busSign: "Morayta - Quiapo" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("sampaloc")) return { jeepSign: "Morayta - Sampaloc / UST", trainLine: "Jeep lang, malapit lang", busSign: "Morayta - Sampaloc" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("cubao")) return { jeepSign: "Morayta - Cubao via Espana", trainLine: "LRT-2 (Recto - Cubao)", busSign: "Quiapo - Cubao" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("divisoria")) return { jeepSign: "Morayta - Divisoria via Recto", trainLine: "LRT-2 (Recto - Divisoria)", busSign: "Morayta - Divisoria" };
-  if ((f.includes("feu") || f.includes("morayta")) && t.includes("intramuros")) return { jeepSign: "Quiapo - Pier / Intramuros", trainLine: "LRT-1 (Carriedo - Central)", busSign: "Quiapo - Pier" };
-
-  // SPECIFIC - SAMPALOC / QUIAPO / DIVISORIA
-  if (f.includes("sampaloc") && t.includes("quiapo")) return { jeepSign: "Sampaloc - Quiapo via Espana", trainLine: "Jeep lang", busSign: "Sampaloc - Quiapo" };
-  if (f.includes("quiapo") && t.includes("divisoria")) return { jeepSign: "Quiapo - Divisoria", trainLine: "Jeep lang", busSign: "Quiapo - Divisoria" };
-  if (f.includes("quiapo") && t.includes("intramuros")) return { jeepSign: "Quiapo - Pier / Intramuros", trainLine: "LRT-1 (Carriedo - Central)", busSign: "Quiapo - Pier" };
-  if (f.includes("quiapo") && t.includes("sampaloc")) return { jeepSign: "Quiapo - Sampaloc", trainLine: "Jeep lang", busSign: "Quiapo - Sampaloc" };
-  if (f.includes("divisoria") && t.includes("baclaran")) return { jeepSign: "Divisoria - Baclaran", trainLine: "LRT-1 (Doroteo Jose - Baclaran)", busSign: "Divisoria - Baclaran" };
-  if (f.includes("cubao") && t.includes("quiapo")) return { jeepSign: "Cubao - Quiapo", trainLine: "LRT-2 (Cubao - Recto)", busSign: "Cubao - Quiapo" };
-
-  // GENERIC
-  const jeepSign = () => {
+  if (f.includes("feu") && t.includes("ue")) return { jeep: "Morayta - Recto", train: "Lakad lang, 5 min", bus: "Morayta - Recto" };
+  if (f.includes("ue") && t.includes("feu")) return { jeep: "Recto - Morayta", train: "Lakad lang, 5 min", bus: "Recto - Morayta" };
+  if ((f.includes("feu") || f.includes("morayta")) && t.includes("north")) return { jeep: "Morayta - SM North via Espana", train: "LRT-2 (Recto - Cubao) → MRT-3 (Cubao - North Ave)", bus: "Morayta - SM North via Quezon Ave" };
+  if ((f.includes("feu") || f.includes("morayta")) && t.includes("quiapo")) return { jeep: "Morayta - Quiapo", train: "Jeep lang", bus: "Morayta - Quiapo" };
+  if ((f.includes("feu") || f.includes("morayta")) && t.includes("sampaloc")) return { jeep: "Morayta - Sampaloc / UST", train: "Jeep lang", bus: "Morayta - Sampaloc" };
+  if ((f.includes("feu") || f.includes("morayta")) && t.includes("cubao")) return { jeep: "Morayta - Cubao via Espana", train: "LRT-2 (Recto - Cubao)", bus: "Quiapo - Cubao" };
+  if (f.includes("sampaloc") && t.includes("quiapo")) return { jeep: "Sampaloc - Quiapo via Espana", train: "Jeep lang", bus: "Sampaloc - Quiapo" };
+  if (f.includes("quiapo") && t.includes("sampaloc")) return { jeep: "Quiapo - Sampaloc", train: "Jeep lang", bus: "Quiapo - Sampaloc" };
+  if (f.includes("quiapo") && t.includes("divisoria")) return { jeep: "Quiapo - Divisoria", train: "Jeep lang", bus: "Quiapo - Divisoria" };
+  if (f.includes("quiapo") && t.includes("intramuros")) return { jeep: "Quiapo - Pier / Intramuros", train: "LRT-1 (Carriedo - Central)", bus: "Quiapo - Pier" };
+  if (f.includes("divisoria") && t.includes("baclaran")) return { jeep: "Divisoria - Baclaran", train: "LRT-1 (Doroteo Jose - Baclaran)", bus: "Divisoria - Baclaran" };
+  const jeep = () => {
     if (f.includes("quiapo") || t.includes("quiapo")) return "Quiapo - Sampaloc";
     if (f.includes("divisoria") || t.includes("divisoria")) return "Divisoria - Baclaran";
     if (f.includes("cubao") || t.includes("cubao")) return "Cubao - Quiapo";
     if (f.includes("sampaloc") || t.includes("sampaloc")) return "Sampaloc - Quiapo";
-    if (f.includes("intramuros") || t.includes("intramuros")) return "Quiapo - Pier / Intramuros";
+    if (f.includes("intramuros")) return "Quiapo - Pier / Intramuros";
     if (f.includes("recto") || t.includes("recto")) return "Recto - Divisoria";
-    if (f.includes("baclaran") || t.includes("baclaran")) return "Baclaran - Divisoria";
+    if (f.includes("baclaran")) return "Baclaran - Divisoria";
     return `${fromName} - ${toName}`;
   };
-  const trainLine = () => {
+  const train = () => {
     if (f.includes("recto") || t.includes("recto") || f.includes("cubao")) return "LRT-2 (Recto - Antipolo)";
-    if (f.includes("baclaran") || f.includes("quiapo") || f.includes("manila")) return "LRT-1 (Baclaran - Roosevelt)";
+    if (f.includes("baclaran") || f.includes("quiapo")) return "LRT-1 (Baclaran - Roosevelt)";
     return "MRT-3 (North Ave - Taft Ave)";
   };
-  const busSign = () => {
+  const bus = () => {
     if (distKm >= 8) return "EDSA Carousel - PITX / Monumento";
     if (f.includes("quiapo")) return "Quiapo - Fairview / Lagro";
     return `${fromName} - ${toName}`;
   };
-  return { jeepSign: jeepSign(), trainLine: trainLine(), busSign: busSign() };
-}
-
-function getDirectionText(fromLat: number, toLat: number) {
-  return toLat > fromLat ? "Pa-north • Pauwi" : "Pa-south • Paalis";
+  return { jeep: jeep(), train: train(), bus: bus() };
 }
 
 export default function SakayPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+
+  // FIX MAPA: i-load yung Leaflet CSS, kaya putol-putol kanina
+  useEffect(() => {
+    import("leaflet/dist/leaflet.css");
+    import("leaflet").then((L) => {
+      // @ts-ignore
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+    });
+  }, []);
 
   const fromPlace = PLACES.find((p) => p.name === from) ?? PLACES[0];
   const toPlace = PLACES.find((p) => p.name === to) ?? PLACES[1];
@@ -121,32 +119,28 @@ export default function SakayPage() {
 
   const routes = useMemo(() => {
     if (!from || !to) return [];
-    const details = getSakayDetails(from, to, distKm);
-    const isNorthbound = toPlace.lat > fromPlace.lat;
-    const dirTraffic = isNorthbound ? 1.12 : 0.95;
-    const dirFareAdjust = isNorthbound ? 2 : 0;
-    const dirText = isNorthbound ? "Pa-north • Pauwi" : "Pa-south • Paalis";
-    const isShort = distKm < 3;
-    const isMedium = distKm >= 3 && distKm < 8;
-
-    if (isShort) {
+    const d = getSakayDetails(from, to, distKm);
+    const isNorth = toPlace.lat > fromPlace.lat;
+    const dirText = isNorth ? "Pa-north • Pauwi" : "Pa-south • Paalis";
+    const traffic = isNorth ? 1.12 : 0.95;
+    if (distKm < 3) {
       return [
-        { id: "mura", title: "💰 Tipid Mode", price: 15, time: Math.round(baseMin * 1.4 + 5), rides: "1 sakay", vehicle: "JEEP", sign: details.jeepSign, note: `${dirText}` },
-        { id: "mabilis", title: "⚡ Express Mode", price: 30, time: Math.round(baseMin * 0.9 + 2), rides: "1 sakay", vehicle: "TRICYCLE", sign: "Tricycle / E-trike", note: `Diretso, walang hintay` },
-        { id: "konti", title: "🚌 Isang Sakay Lang", price: 15, time: Math.round(baseMin * 1.2 + 3), rides: "1 sakay", vehicle: "JEEP", sign: details.jeepSign, note: `Isang jeep lang • ${dirText}` },
+        { id: "mura", title: "💰 Tipid Mode", price: 15, time: Math.round(baseMin * 1.4 + 5), rides: "1 sakay", tag: "JEEP", sign: d.jeep, note: dirText },
+        { id: "mabilis", title: "⚡ Express Mode", price: 30, time: Math.round(baseMin * 0.9 + 2), rides: "1 sakay", tag: "TRICYCLE", sign: "Tricycle / E-trike", note: "Diretso, walang hintay" },
+        { id: "konti", title: "🚌 Isang Sakay Lang", price: 15, time: Math.round(baseMin * 1.2 + 3), rides: "1 sakay", tag: "JEEP", sign: d.jeep, note: `Isang jeep lang • ${dirText}` },
       ];
     }
-    if (isMedium) {
+    if (distKm < 8) {
       return [
-        { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm, "jeep")), time: Math.round(baseMin * 1.3 + 8), rides: "1 sakay", vehicle: "JEEP", sign: details.jeepSign, note: `${dirText}` },
-        { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm, "bus")), time: Math.round(baseMin * 0.9 + 4), rides: "1 sakay", vehicle: "BUS", sign: details.busSign, note: `Isang bus lang` },
-        { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 5), time: Math.round(baseMin * 1.1 + 3), rides: "1 sakay", vehicle: "BUS", sign: details.busSign, note: `Walang lipat • ${dirText}` },
+        { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm, "jeep")), time: Math.round(baseMin * 1.3 + 8), rides: "1 sakay", tag: "JEEP", sign: d.jeep, note: dirText },
+        { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm, "bus")), time: Math.round(baseMin * 0.9 + 4), rides: "1 sakay", tag: "BUS", sign: d.bus, note: "Isang bus lang" },
+        { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 5), time: Math.round(baseMin * 1.1 + 3), rides: "1 sakay", tag: "BUS", sign: d.bus, note: `Walang lipat • ${dirText}` },
       ];
     }
     return [
-      { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt") + dirFareAdjust), time: Math.round((baseMin * 1.35 + 12) * dirTraffic), rides: "2 sakay", vehicle: "JEEP + TRAIN", sign: `${details.jeepSign} → ${details.trainLine}`, note: `${dirText}` },
-      { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus") + dirFareAdjust), time: Math.round((baseMin * 0.85 + 5) * dirTraffic), rides: "2 sakay", vehicle: "TRAIN + BUS", sign: `${details.trainLine} → ${details.busSign}`, note: `Via EDSA` },
-      { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 10 + dirFareAdjust), time: Math.round((baseMin * 1.1 + 3) * dirTraffic), rides: "1 sakay", vehicle: "BUS", sign: details.busSign, note: `${dirText}` },
+      { id: "mura", title: "💰 Tipid Mode", price: Math.round(calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt")), time: Math.round((baseMin * 1.35 + 12) * traffic), rides: "2 sakay", tag: "JEEP + TRAIN", sign: `${d.jeep} → ${d.train}`, note: dirText },
+      { id: "mabilis", title: "⚡ Express Mode", price: Math.round(calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus")), time: Math.round((baseMin * 0.85 + 5) * traffic), rides: "2 sakay", tag: "TRAIN + BUS", sign: `${d.train} → ${d.bus}`, note: "Via EDSA" },
+      { id: "konti", title: "🚌 Isang Sakay Lang", price: Math.round(calcFare(distKm, "bus") + 10), time: Math.round((baseMin * 1.1 + 3) * traffic), rides: "1 sakay", tag: "BUS", sign: d.bus, note: dirText },
     ];
   }, [distKm, baseMin, from, to, fromPlace, toPlace]);
 
@@ -157,45 +151,35 @@ export default function SakayPage() {
       <h1 style={{ fontSize: 22, fontWeight: "bold" }}>🗺️ Sakay</h1>
 
       <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Saan ka manggagaling? Ex: FEU Manila" list="places" style={{ width: "100%", padding: 12, marginBottom: 8, borderRadius: 10, border: "1px solid #ddd" }} />
-      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Saan ka pupunta? Ex: SM North EDSA" list="places" style={{ width: "100%", padding: 12, marginBottom: 12, borderRadius: 10, border: "1px solid #ddd" }} />
+      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Saan ka pupunta? Ex: UE Manila - Recto" list="places" style={{ width: "100%", padding: 12, marginBottom: 12, borderRadius: 10, border: "1px solid #ddd" }} />
       <datalist id="places">
-        {PLACES.map((p) => (
-          <option key={p.name} value={p.name} />
-        ))}
+        {PLACES.map((p) => (<option key={p.name} value={p.name} />))}
       </datalist>
 
       {from && to && (
         <>
-          <p style={{ fontWeight: 600 }}>📏 {distKm.toFixed(1)} km • {getDirectionText(fromPlace.lat, toPlace.lat)}</p>
+          <p style={{ fontWeight: 600 }}>📏 {distKm.toFixed(1)} km • {toPlace.lat > fromPlace.lat ? "Pa-north • Pauwi" : "Pa-south • Paalis"}</p>
 
-          {/* MAP - 2 PINS LANG, MALAKI NA ULIT */}
-          <div style={{ height: 360, borderRadius: 16, overflow: "hidden", marginBottom: 16, border: "1px solid #e5e5e5", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
-            <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
+          {/* MAPA - AYOS NA, BUO NA */}
+          <div style={{ height: 300, borderRadius: 12, overflow: "hidden", marginBottom: 14, border: "1px solid #e5e5e5" }}>
+            <MapContainer key={`${from}-${to}`} center={center} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={[fromPlace.lat, fromPlace.lng]}>
-                <Popup>📍 Simula: {from}</Popup>
-              </Marker>
-              <Marker position={[toPlace.lat, toPlace.lng]}>
-                <Popup>🏁 Punta: {to}</Popup>
-              </Marker>
-              <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} color="blue" />
+              <Marker position={[fromPlace.lat, fromPlace.lng]}><Popup>📍 {from}</Popup></Marker>
+              <Marker position={[toPlace.lat, toPlace.lng]}><Popup>🏁 {to}</Popup></Marker>
+              <Polyline positions={[[fromPlace.lat, fromPlace.lng], [toPlace.lat, toPlace.lng]]} color="#2563eb" weight={4} />
             </MapContainer>
           </div>
 
+          {/* CARDS - PARANG LUMA, WALANG DILAW NA BOX */}
           {routes.map((r) => (
-            <div key={r.id} style={{ border: "1px solid #eee", borderRadius: 16, padding: 14, marginBottom: 12, background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div key={r.id} style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, marginBottom: 10, background: "#fff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <b>{r.title}</b>
-                <span style={{ fontSize: 12, background: "#f0f0f0", padding: "3px 8px", borderRadius: 20 }}>{r.vehicle}</span>
+                <span style={{ fontSize: 11, background: "#f0f0f0", padding: "3px 8px", borderRadius: 20 }}>{r.tag}</span>
               </div>
               <div style={{ fontSize: 14, marginTop: 4 }}>₱{r.price} • {r.time} min • {r.rides}</div>
-
-              {/* KARATULA - DILAW NA PARANG TOTOONG JEEP SIGNBOARD */}
-              <div style={{ background: "#FFD600", color: "#000", fontWeight: 800, padding: "10px 10px", borderRadius: 8, marginTop: 10, fontSize: 14, border: "2px solid #000", textAlign: "center", letterSpacing: 0.3, lineHeight: 1.3 }}>
-                🪧 {r.sign}
-              </div>
-
-              <div style={{ fontSize: 12, color: "#666", marginTop: 8 }}>{r.note}</div>
+              <div style={{ fontSize: 13, marginTop: 6, color: "#333" }}>🪧 Karatula: <b>{r.sign}</b></div>
+              <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{r.note}</div>
             </div>
           ))}
         </>
