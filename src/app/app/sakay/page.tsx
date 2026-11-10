@@ -185,7 +185,7 @@ export default function SakayPage() {
         </>
       )}
 
-      {(!from || !to) && <p style={{ color: "#888", textAlign: "center", marginTop: 20 }}>👆 Pili ka muna ng simula at pupuntahan mo</p>}
+
     </div>
   );
 }
