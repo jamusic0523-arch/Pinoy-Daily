@@ -89,6 +89,7 @@ export default function SakayPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [beginnerMode, setBeginnerMode] = useState(true);
+  const [guideLanguage, setGuideLanguage] = useState<"tl" | "en">("tl");
 
   // Load Leaflet styles and marker icons on the client.
   useEffect(() => {
@@ -148,6 +149,18 @@ export default function SakayPage() {
             "Bago sumakay, itanong sa driver kung dadaan ito sa iyong bababaan.",
             `Sabihin ang destination mo: ${to}. Magtanong kung saan pinakamainam bumaba.`,
           ],
+
+          stepsEn: [
+
+            "Go to a loading area near your starting point.",
+
+            `Look for a jeepney with the signboard “${d.jeep}” at the front.`,
+
+            "Before getting on, ask the driver if it passes your stop.",
+
+            `Tell the driver your destination: ${to}. Ask where you should get off.`,
+
+          ],
         },
         {
           id: "mabilis",
@@ -164,6 +177,16 @@ export default function SakayPage() {
             "Sabihin ang eksaktong destination at itanong muna ang pamasahe.",
             "Kumpirmahin kung ihahatid ka mismo sa destination.",
           ],
+
+          stepsEn: [
+
+            "Find an authorized tricycle terminal or queue.",
+
+            "Tell the driver your exact destination and ask the fare first.",
+
+            "Make sure the driver can take you directly to your destination.",
+
+          ],
         },
         {
           id: "konti",
@@ -179,6 +202,16 @@ export default function SakayPage() {
             "Pumunta sa sakayan at tingnan ang karatula sa harap ng jeep.",
             `Hanapin ang "${d.jeep}" at kumpirmahin sa driver ang bababaan.`,
             `Sabihin na papunta ka sa ${to} at itanong kung saan ka dapat bumaba.`,
+          ],
+
+          stepsEn: [
+
+            "Go to the jeepney stop and check the signboard at the front.",
+
+            `Look for “${d.jeep}” and confirm your drop-off point with the driver.`,
+
+            `Tell the driver you are going to ${to} and ask where you should get off.`,
+
           ],
         },
       ];
@@ -202,6 +235,18 @@ export default function SakayPage() {
             "Itanong sa driver kung dadaan sa destination bago sumakay.",
             `Sabihin na bababa ka sa ${to}; magtanong kung anong landmark ang dapat bantayan.`,
           ],
+
+          stepsEn: [
+
+            "Go to the jeepney loading area heading in the direction you need.",
+
+            `Look for the signboard “${d.jeep}” at the front or windshield of the jeepney.`,
+
+            "Before boarding, ask the driver if the jeepney passes your destination.",
+
+            `Tell the driver where you will get off: ${to}. Ask which landmark to watch for.`,
+
+          ],
         },
         {
           id: "mabilis",
@@ -219,6 +264,18 @@ export default function SakayPage() {
             "Kumpirmahin sa konduktor o driver kung daraan sa destination mo.",
             `Sabihin na bababa ka malapit sa ${to} at humingi ng paalala bago ang stop.`,
           ],
+
+          stepsEn: [
+
+            "Go to the correct bus stop or terminal. Do not board in the middle of the road.",
+
+            `Read the destination sign at the front of the bus: “${d.bus}”.`,
+
+            "Ask the driver or conductor if the bus passes your destination.",
+
+            `Tell them you need to get off near ${to}, and ask for a reminder before the stop.`,
+
+          ],
         },
         {
           id: "konti",
@@ -234,6 +291,16 @@ export default function SakayPage() {
             "Pumunta sa bus stop na may sakayan papunta sa direksyon mo.",
             `Hanapin ang bus na may karatulang "${d.bus}".`,
             "I-confirm sa konduktor ang bababaan at kung kailangan ng beep card o cash.",
+          ],
+
+          stepsEn: [
+
+            "Go to a bus stop with buses heading in your direction.",
+
+            `Look for a bus with the signboard “${d.bus}”.`,
+
+            "Ask the conductor where to get off and whether payment is by beep card or cash.",
+
           ],
         },
       ];
@@ -256,6 +323,18 @@ export default function SakayPage() {
           `Sumunod na sakay: ${d.train}. Sundin ang station signs at huwag magmadali sa paglipat.`,
           `Pagdating sa huling bahagi ng biyahe, sundin ang directions papuntang ${to}.`,
         ],
+
+        stepsEn: [
+
+          `First ride: look for a jeepney with the signboard “${d.jeep}”.`,
+
+          "Ask the driver where you should get off to transfer to your next ride.",
+
+          `Next ride: take ${d.train}. Follow the station signs and take your time when transferring.`,
+
+          `When you reach the last part of the trip, follow the directions to ${to}.`,
+
+        ],
       },
       {
         id: "mabilis",
@@ -273,6 +352,18 @@ export default function SakayPage() {
           `Ikalawang sakay: hanapin ang bus na may karatulang "${d.bus}".`,
           `Kumpirmahin sa konduktor kung saan bababa para sa ${to}.`,
         ],
+
+        stepsEn: [
+
+          `First ride: follow the station directions for ${d.train}.`,
+
+          "Get off at the correct transfer station and follow the exit or transfer signs.",
+
+          `Second ride: look for a bus with the signboard “${d.bus}”.`,
+
+          `Ask the conductor where to get off for ${to}.`,
+
+        ],
       },
       {
         id: "konti",
@@ -289,6 +380,18 @@ export default function SakayPage() {
           `Hanapin ang bus na may karatulang "${d.bus}".`,
           "Kumpirmahin muna sa konduktor kung diretso ito sa destination mo.",
           `Sabihin na bababa ka sa ${to} at humingi ng landmark o stop reminder.`,
+        ],
+
+        stepsEn: [
+
+          "Go to the correct bus stop or terminal.",
+
+          `Look for a bus with the signboard “${d.bus}”.`,
+
+          "Before boarding, ask the conductor if the bus goes directly to your destination.",
+
+          `Tell the conductor you need to get off at ${to}. Ask for a nearby landmark or a reminder before the stop.`,
+
         ],
       },
     ];
@@ -457,7 +560,7 @@ export default function SakayPage() {
                     </MapContainer>
                   </div>
                   <p style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b", marginTop: 8 }}>
-                    Paalala: tuwid na linya lamang ang ipinapakita sa mapa, hindi aktuwal na daan o eksaktong sakayan.
+                    Note: The map shows a straight line between locations, not the actual road route or exact boarding point.
                   </p>
                 </section>
 
@@ -497,11 +600,27 @@ export default function SakayPage() {
 
                         {beginnerMode && (
                           <div style={{ marginTop: 13, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
-                            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: "#006747" }}>
-                              👣 Paano ito sakyan?
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                              <div style={{ fontWeight: 800, fontSize: 13, color: "#006747" }}>
+                                👣 {guideLanguage === "tl" ? "Paano ito sakyan?" : "How to take this route"}
+                              </div>
+                              <div role="group" aria-label="Guide language" style={{ display: "inline-flex", padding: 3, gap: 3, borderRadius: 999, background: "#f2f1eb", border: "1px solid #e7e5df" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setGuideLanguage("tl")}
+                                  aria-pressed={guideLanguage === "tl"}
+                                  style={{ border: 0, borderRadius: 999, padding: "6px 12px", background: guideLanguage === "tl" ? "#006747" : "transparent", color: guideLanguage === "tl" ? "#fff" : "#53605b", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                                >Tagalog</button>
+                                <button
+                                  type="button"
+                                  onClick={() => setGuideLanguage("en")}
+                                  aria-pressed={guideLanguage === "en"}
+                                  style={{ border: 0, borderRadius: 999, padding: "6px 12px", background: guideLanguage === "en" ? "#006747" : "transparent", color: guideLanguage === "en" ? "#fff" : "#53605b", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                                >English</button>
+                              </div>
                             </div>
                             <ol style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 7, color: "#334155", fontSize: 13, lineHeight: 1.5 }}>
-                              {r.steps.map((step, index) => <li key={index}>{step}</li>)}
+                              {(guideLanguage === "tl" ? r.steps : r.stepsEn).map((step, index) => <li key={index}>{step}</li>)}
                             </ol>
                           </div>
                         )}
@@ -512,7 +631,7 @@ export default function SakayPage() {
               </div>
 
               <aside style={{ marginTop: 18, border: "1px solid #eadfbd", background: "#fff9e9", borderRadius: 14, padding: 14, color: "#735b2d", fontSize: 12, lineHeight: 1.6 }}>
-                <strong>Importanteng paalala:</strong> Ang mga ruta, karatula, pamasahe, at oras dito ay generated estimates mula sa kasalukuyang sample logic ng app. Hindi pa ito verified na live route information. Bago sumakay, basahin ang karatula sa harap ng sasakyan at kumpirmahin sa driver o konduktor kung dadaan ito sa iyong destination.
+                <strong>Important notice:</strong> Routes, signboards, fares, and travel times shown here are estimates generated by the app’s sample logic. They are not verified live route information. Before boarding, check the signboard at the front of the vehicle and ask the driver or conductor if it passes your destination.
               </aside>
             </>
           )}
