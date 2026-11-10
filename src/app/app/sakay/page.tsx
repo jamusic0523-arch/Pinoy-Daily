@@ -240,10 +240,11 @@ const routes = useMemo(() => {
   const directionLabel = isNorthbound ? "Pa-north • Pauwi" : "Pa-south • Paalis";
 
   return [
-    { id: "mura", title: "💰 Tipid Mode", price: tipidFare, time: tipidTime, rides: "2 sakay", steps: tipidSteps, note: `Pinakamura • ${directionLabel}` },
-    { id: "mabilis", title: "⚡ Express Mode", price: expressFare, time: expressTime, rides: "2 sakay", steps: expressSteps, note: `Pinakamabilis • Via EDSA` },
-    { id: "konti", title: "🚌 Isang Sakay Lang", price: isangFare, time: isangTime, rides: "1 sakay", steps: ["Bus Direct"], note: `Walang lipat • ${directionLabel}` },
-  ];
+    return [
+      { id: "mura", title: "💰 Tipid Mode", price: tipidFare, time: tipidTime, rides: "2 sakay", steps: tipidSteps, note: `${directionLabel}` },
+      { id: "mabilis", title: "⚡ Express Mode", price: expressFare, time: expressTime, rides: "2 sakay", steps: expressSteps, note: `Via EDSA` },
+      { id: "konti", title: "🚌 Isang Sakay Lang", price: isangFare, time: isangTime, rides: "1 sakay", steps: ["Bus Direct"], note: `${directionLabel}` },
+    ];
 }, [distKm, baseMin, from, to, fromPlace, toPlace]);
 
   const filteredFrom = PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()));
