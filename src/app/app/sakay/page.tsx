@@ -219,24 +219,32 @@ export default function SakayPage() {
   const distKm = realData.distKm > 0 ? realData.distKm : straightKm * 1.4;
   const baseMin = realData.durationMin > 0 ? realData.durationMin : distKm * 3;
 
-  // Dynamic Routes - nagbabago talaga pag nag-swap o nagpalit ng lugar
-  const routes = useMemo(() => {
-    // MURA: Jeep + LRT combo - pinakamura pero matagal, may lakad + hintay
-    const muraFare = calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt");
-    const muraTime = Math.round(baseMin * 1.35 + 12); // + hintay + lakad
-    // MABILIS: MRT + Bus, less traffic via EDSA
-    const mabilisFare = calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus");
-    const mabilisTime = Math.round(baseMin * 0.85 + 5);
-    // KONTI LIPAT: 1 Bus Direct, mas mahal pero walang lipat
-    const kontiFare = calcFare(distKm, "bus") + 10; // + aircon / express
-    const kontiTime = Math.round(baseMin * 1.1 + 3);
+// Dynamic Routes - iba pag pauwi vs paalis
+const routes = useMemo(() => {
+  const isNorthbound = toPlace.lat > fromPlace.lat;
+  const dirHash = (from.charCodeAt(0) + to.charCodeAt(0)) % 10;
+  const dirTraffic = isNorthbound ? 1.12 : 0.95;
+  const dirFareAdjust = isNorthbound ? 2 : 0;
 
-    return [
-      { id: "mura", title: "Pinakamura", price: muraFare, time: muraTime, rides: "2 sakay", steps: ["Jeep", "LRT/MRT"], note: "May lakad + hintay" },
-      { id: "mabilis", title: "Pinakamabilis", price: mabilisFare, time: mabilisTime, rides: "2 sakay", steps: ["MRT-3", "Bus"], note: "Via EDSA" },
-      { id: "konti", title: "Pinaka-konti Lipat", price: kontiFare, time: kontiTime, rides: "1 sakay", steps: ["Bus Direct"], note: "Walang lipat" },
-    ];
-  }, [distKm, baseMin]);
+  const tipidFare = calcFare(distKm * 0.6, "jeep") + calcFare(distKm * 0.4, "mrt") + dirFareAdjust;
+  const tipidTime = Math.round((baseMin * 1.35 + 12) * dirTraffic + (dirHash % 3));
+  
+  const expressFare = calcFare(distKm * 0.5, "mrt") + calcFare(distKm * 0.5, "bus") + dirFareAdjust;
+  const expressTime = Math.round((baseMin * 0.85 + 5) * dirTraffic);
+  
+  const isangFare = calcFare(distKm, "bus") + 10 + dirFareAdjust;
+  const isangTime = Math.round((baseMin * 1.1 + 3) * dirTraffic + (dirHash % 4));
+
+  const tipidSteps = isNorthbound ? ["Jeep", "LRT/MRT"] : ["LRT/MRT", "Jeep"];
+  const expressSteps = isNorthbound ? ["Bus", "MRT-3"] : ["MRT-3", "Bus"];
+  const directionLabel = isNorthbound ? "Pa-north • Pauwi" : "Pa-south • Paalis";
+
+  return [
+    { id: "mura", title: "💰 Tipid Mode", price: tipidFare, time: tipidTime, rides: "2 sakay", steps: tipidSteps, note: `Pinakamura • ${directionLabel}` },
+    { id: "mabilis", title: "⚡ Express Mode", price: expressFare, time: expressTime, rides: "2 sakay", steps: expressSteps, note: `Pinakamabilis • Via EDSA` },
+    { id: "konti", title: "🚌 Isang Sakay Lang", price: isangFare, time: isangTime, rides: "1 sakay", steps: ["Bus Direct"], note: `Walang lipat • ${directionLabel}` },
+  ];
+}, [distKm, baseMin, from, to, fromPlace, toPlace]);
 
   const filteredFrom = PLACES.filter(p => p.name.toLowerCase().includes(from.toLowerCase()));
   const filteredTo = PLACES.filter(p => p.name.toLowerCase().includes(to.toLowerCase()));
