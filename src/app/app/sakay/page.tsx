@@ -442,8 +442,7 @@ export default function SakayPage() {
           🗺️ Sakay Maps
         </h1>
         <p style={{ color: "#778092", margin: 0, lineHeight: 1.65, maxWidth: 680 }}>
-          Hindi sigurado kung anong sasakyan? Hanapin ang ruta at alamin kung anong
-          karatula ang dapat mong tingnan sa harap ng jeep o bus.
+        Not sure which ride to take? Find your route and learn which signboard to look for at the front of the jeepney or bus.
         </p>
       </header>
 
