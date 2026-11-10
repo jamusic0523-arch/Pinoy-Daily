@@ -1,10 +1,8 @@
 const PLACES = [
-  // QUEZON CITY
+  // ===== QUEZON CITY =====
   { name: "SM North EDSA", lat: 14.6567, lng: 121.0295, area: "Quezon City" },
   { name: "Trinoma", lat: 14.653, lng: 121.032, area: "Quezon City" },
   { name: "Cubao - Araneta", lat: 14.622, lng: 121.053, area: "Quezon City" },
-  { name: "UP Diliman", lat: 14.6538, lng: 121.061, area: "Quezon City" },
-  { name: "Ateneo de Manila", lat: 14.639, lng: 121.078, area: "Quezon City" },
   { name: "Eastwood City", lat: 14.609, lng: 121.081, area: "Quezon City" },
   { name: "Fairview - SM Fairview", lat: 14.733, lng: 121.058, area: "Quezon City" },
   { name: "Commonwealth - Litex", lat: 14.678, lng: 121.078, area: "Quezon City" },
@@ -12,15 +10,22 @@ const PLACES = [
   { name: "Kamuning", lat: 14.636, lng: 121.045, area: "Quezon City" },
   { name: "Tomas Morato", lat: 14.635, lng: 121.037, area: "Quezon City" },
   { name: "Welcome Rotonda", lat: 14.618, lng: 121.002, area: "Quezon City" },
+  { name: "UP Diliman", lat: 14.6538, lng: 121.061, area: "Quezon City - School" },
+  { name: "Ateneo de Manila", lat: 14.639, lng: 121.078, area: "Quezon City - School" },
+  { name: "Miriam College Katipunan", lat: 14.64, lng: 121.078, area: "Quezon City - School" },
+  { name: "Philippine Science High - Main", lat: 14.648, lng: 121.057, area: "Quezon City - School" },
+  { name: "New Era University", lat: 14.66, lng: 121.06, area: "Quezon City - School" },
+  { name: "FEU Diliman", lat: 14.66, lng: 121.07, area: "Quezon City - School" },
+  { name: "Quezon City Science High", lat: 14.645, lng: 121.045, area: "Quezon City - School" },
+  { name: "Technological Institute of Philippines QC", lat: 14.622, lng: 121.04, area: "Quezon City - School" },
 
-  // MANILA
+  // ===== MANILA =====
   { name: "Divisoria", lat: 14.6018, lng: 120.9745, area: "Manila" },
   { name: "Quiapo Church", lat: 14.5989, lng: 120.9838, area: "Manila" },
   { name: "Intramuros", lat: 14.5895, lng: 120.9748, area: "Manila" },
   { name: "Binondo - Chinatown", lat: 14.6, lng: 120.97, area: "Manila" },
   { name: "Rizal Park Luneta", lat: 14.5815, lng: 120.976, area: "Manila" },
   { name: "Tondo - Tutuban", lat: 14.611, lng: 120.968, area: "Manila" },
-  { name: "Sampaloc - UST", lat: 14.609, lng: 120.989, area: "Manila" },
   { name: "Malate - Remedios", lat: 14.572, lng: 120.982, area: "Manila" },
   { name: "Ermita - Robinsons Manila", lat: 14.58, lng: 120.981, area: "Manila" },
   { name: "Paco Market", lat: 14.587, lng: 120.996, area: "Manila" },
@@ -28,8 +33,21 @@ const PLACES = [
   { name: "Recto - LRT Recto", lat: 14.602, lng: 120.984, area: "Manila" },
   { name: "Blumentritt", lat: 14.621, lng: 120.983, area: "Manila" },
   { name: "Taft Ave - PNU", lat: 14.586, lng: 120.987, area: "Manila" },
+  { name: "UST - University of Santo Tomas", lat: 14.609, lng: 120.989, area: "Manila - School" },
+  { name: "FEU - Far Eastern University", lat: 14.603, lng: 120.986, area: "Manila - School" },
+  { name: "UE - University of the East Recto", lat: 14.601, lng: 120.985, area: "Manila - School" },
+  { name: "Adamson University", lat: 14.586, lng: 120.984, area: "Manila - School" },
+  { name: "Mapua University Intramuros", lat: 14.587, lng: 120.977, area: "Manila - School" },
+  { name: "PUP - Polytechnic University", lat: 14.598, lng: 121.004, area: "Manila - School" },
+  { name: "TUP - Technological University", lat: 14.588, lng: 120.987, area: "Manila - School" },
+  { name: "PLM - Pamantasan ng Lungsod", lat: 14.59, lng: 120.974, area: "Manila - School" },
+  { name: "San Beda University", lat: 14.599, lng: 120.99, area: "Manila - School" },
+  { name: "Centro Escolar University", lat: 14.6, lng: 120.984, area: "Manila - School" },
+  { name: "San Sebastian College", lat: 14.601, lng: 120.987, area: "Manila - School" },
+  { name: "UP Manila", lat: 14.58, lng: 120.984, area: "Manila - School" },
+  { name: "DLSU - De La Salle Manila", lat: 14.565, lng: 120.993, area: "Manila - School" },
 
-  // MAKATI / TAGUIG / BGC
+  // ===== MAKATI / TAGUIG / BGC =====
   { name: "Makati - Ayala Ave", lat: 14.5547, lng: 121.0244, area: "Makati" },
   { name: "Greenbelt Makati", lat: 14.5525, lng: 121.0215, area: "Makati" },
   { name: "Glorietta Makati", lat: 14.5515, lng: 121.0265, area: "Makati" },
@@ -39,8 +57,15 @@ const PLACES = [
   { name: "BGC - Market Market", lat: 14.549, lng: 121.056, area: "Taguig" },
   { name: "McKinley Hill", lat: 14.532, lng: 121.052, area: "Taguig" },
   { name: "SM Aura BGC", lat: 14.546, lng: 121.055, area: "Taguig" },
+  { name: "DLSU - De La Salle Makati", lat: 14.558, lng: 121.02, area: "Makati - School" },
+  { name: "University of Makati", lat: 14.558, lng: 121.022, area: "Makati - School" },
+  { name: "Assumption College Makati", lat: 14.559, lng: 121.02, area: "Makati - School" },
+  { name: "St. Paul College Makati", lat: 14.56, lng: 121.015, area: "Makati - School" },
+  { name: "Makati Science High", lat: 14.555, lng: 121.035, area: "Makati - School" },
+  { name: "Enderun Colleges BGC", lat: 14.55, lng: 121.05, area: "Taguig - School" },
+  { name: "International School Manila", lat: 14.55, lng: 121.05, area: "Taguig - School" },
 
-  // PASAY / PARANAQUE / LAS PINAS
+  // ===== PASAY / PARANAQUE / LAS PINAS / MUNTINLUPA =====
   { name: "MOA - Mall of Asia", lat: 14.535, lng: 120.982, area: "Pasay" },
   { name: "NAIA Terminal 3", lat: 14.508, lng: 121.019, area: "Pasay" },
   { name: "NAIA Terminal 1", lat: 14.508, lng: 121.019, area: "Pasay" },
@@ -52,8 +77,13 @@ const PLACES = [
   { name: "Alabang Town Center", lat: 14.423, lng: 121.028, area: "Muntinlupa" },
   { name: "Festival Mall Alabang", lat: 14.417, lng: 121.04, area: "Muntinlupa" },
   { name: "Starmall Alabang", lat: 14.419, lng: 121.045, area: "Muntinlupa" },
+  { name: "PATTS College Paranaque", lat: 14.47, lng: 121.02, area: "Paranaque - School" },
+  { name: "Olivarez College Paranaque", lat: 14.47, lng: 121.02, area: "Paranaque - School" },
+  { name: "University of Perpetual Help Las Pinas", lat: 14.45, lng: 120.99, area: "Las Pinas - School" },
+  { name: "San Beda Alabang", lat: 14.42, lng: 121.03, area: "Muntinlupa - School" },
+  { name: "De La Salle Zobel Alabang", lat: 14.41, lng: 121.03, area: "Muntinlupa - School" },
 
-  // MANDALUYONG / PASIG / SAN JUAN / MARIKINA
+  // ===== MANDALUYONG / PASIG / SAN JUAN / MARIKINA =====
   { name: "SM Megamall", lat: 14.5845, lng: 121.056, area: "Mandaluyong" },
   { name: "Robinsons Galleria", lat: 14.589, lng: 121.059, area: "Mandaluyong" },
   { name: "Shaw Blvd - EDSA", lat: 14.583, lng: 121.049, area: "Mandaluyong" },
@@ -64,8 +94,13 @@ const PLACES = [
   { name: "Marikina - Shoe Museum", lat: 14.648, lng: 121.095, area: "Marikina" },
   { name: "Greenhills San Juan", lat: 14.606, lng: 121.047, area: "San Juan" },
   { name: "Little Baguio San Juan", lat: 14.61, lng: 121.03, area: "San Juan" },
+  { name: "Rizal Technological University", lat: 14.58, lng: 121.06, area: "Mandaluyong - School" },
+  { name: "University of Asia and Pacific", lat: 14.56, lng: 121.03, area: "Pasig - School" },
+  { name: "Pasig City Science High", lat: 14.56, lng: 121.08, area: "Pasig - School" },
+  { name: "La Salle Green Hills", lat: 14.606, lng: 121.045, area: "San Juan - School" },
+  { name: "Xavier School San Juan", lat: 14.61, lng: 121.04, area: "San Juan - School" },
 
-  // CALOOCAN / MALABON / NAVOTAS / VALENZUELA
+  // ===== CALOOCAN / MALABON / NAVOTAS / VALENZUELA / PATEROS =====
   { name: "Monumento Caloocan", lat: 14.657, lng: 120.984, area: "Caloocan" },
   { name: "SM Grand Central Caloocan", lat: 14.652, lng: 120.983, area: "Caloocan" },
   { name: "Malabon - Fish Market", lat: 14.66, lng: 120.954, area: "Malabon" },
@@ -73,57 +108,8 @@ const PLACES = [
   { name: "Valenzuela - SM Valenzuela", lat: 14.7, lng: 120.98, area: "Valenzuela" },
   { name: "Valenzuela - People Park", lat: 14.695, lng: 120.977, area: "Valenzuela" },
   { name: "Pateros - Town Proper", lat: 14.545, lng: 121.068, area: "Pateros" },
-    // PAARALAN - MANILA
-    { name: "UST - University of Santo Tomas", lat: 14.609, lng: 120.989, area: "Manila - Sampaloc" },
-    { name: "FEU - Far Eastern University", lat: 14.603, lng: 120.986, area: "Manila - Sampaloc" },
-    { name: "UE - University of the East Recto", lat: 14.601, lng: 120.985, area: "Manila - Recto" },
-    { name: "Adamson University", lat: 14.586, lng: 120.984, area: "Manila - Ermita" },
-    { name: "Mapua University Intramuros", lat: 14.587, lng: 120.977, area: "Manila - Intramuros" },
-    { name: "PUP - Polytechnic University", lat: 14.598, lng: 121.004, area: "Manila - Sta. Mesa" },
-    { name: "TUP - Technological University", lat: 14.588, lng: 120.987, area: "Manila - Ermita" },
-    { name: "PLM - Pamantasan ng Lungsod", lat: 14.59, lng: 120.974, area: "Manila - Intramuros" },
-    { name: "San Beda University", lat: 14.599, lng: 120.99, area: "Manila - Mendiola" },
-    { name: "Centro Escolar University", lat: 14.6, lng: 120.984, area: "Manila - Mendiola" },
-    { name: "San Sebastian College", lat: 14.601, lng: 120.987, area: "Manila - Recto" },
-  
-    // PAARALAN - QUEZON CITY
-    { name: "UP Diliman", lat: 14.6538, lng: 121.061, area: "Quezon City" },
-    { name: "Ateneo de Manila", lat: 14.639, lng: 121.078, area: "Quezon City - Katipunan" },
-    { name: "Miriam College Katipunan", lat: 14.64, lng: 121.078, area: "Quezon City" },
-    { name: "UP Manila", lat: 14.58, lng: 120.984, area: "Manila - Ermita" },
-    { name: "Quezon City Science High", lat: 14.645, lng: 121.045, area: "Quezon City" },
-    { name: "Philippine Science High - Main", lat: 14.648, lng: 121.057, area: "Quezon City" },
-    { name: "New Era University", lat: 14.66, lng: 121.06, area: "Quezon City" },
-    { name: "FEU Diliman", lat: 14.66, lng: 121.07, area: "Quezon City" },
-    { name: "Technological Institute of Philippines QC", lat: 14.622, lng: 121.04, area: "Quezon City - Cubao" },
-  
-    // PAARALAN - MAKATI / TAGUIG / PASIG / MANDALUYONG
-    { name: "DLSU - De La Salle Manila", lat: 14.565, lng: 120.993, area: "Manila - Taft" },
-    { name: "DLSU - De La Salle Makati", lat: 14.558, lng: 121.02, area: "Makati" },
-    { name: "St. Paul College Makati", lat: 14.56, lng: 121.015, area: "Makati" },
-    { name: "Assumption College Makati", lat: 14.559, lng: 121.02, area: "Makati" },
-    { name: "Makati Science High", lat: 14.555, lng: 121.035, area: "Makati" },
-    { name: "University of Makati", lat: 14.558, lng: 121.022, area: "Makati" },
-    { name: "Enderun Colleges BGC", lat: 14.55, lng: 121.05, area: "Taguig - BGC" },
-    { name: "Treston International BGC", lat: 14.55, lng: 121.05, area: "Taguig - BGC" },
-    { name: "International School Manila", lat: 14.55, lng: 121.05, area: "Taguig - BGC" },
-    { name: "Rizal Technological University", lat: 14.58, lng: 121.06, area: "Mandaluyong" },
-    { name: "Pasig City Science High", lat: 14.56, lng: 121.08, area: "Pasig" },
-    { name: "University of Asia and Pacific", lat: 14.56, lng: 121.03, area: "Pasig - Ortigas" },
-    { name: "La Salle Green Hills", lat: 14.606, lng: 121.045, area: "San Juan" },
-    { name: "Xavier School San Juan", lat: 14.61, lng: 121.04, area: "San Juan" },
-    { name: "Immaculate Conception Academy", lat: 14.61, lng: 121.04, area: "San Juan" },
-  
-    // PAARALAN - CALOOCAN / MALABON / VALENZUELA / LAS PINAS / PARAÑAQUE
-    { name: "Caloocan City Science High", lat: 14.65, lng: 120.98, area: "Caloocan" },
-    { name: "University of Caloocan City", lat: 14.65, lng: 120.98, area: "Caloocan" },
-    { name: "Arellano University Malabon", lat: 14.66, lng: 120.95, area: "Malabon" },
-    { name: "Valenzuela City School of Math", lat: 14.7, lng: 120.98, area: "Valenzuela" },
-    { name: "Pamantasan ng Lungsod ng Valenzuela", lat: 14.7, lng: 120.98, area: "Valenzuela" },
-    { name: "University of Perpetual Help Las Pinas", lat: 14.45, lng: 120.99, area: "Las Pinas" },
-    { name: "St. Dominic College Asia", lat: 14.43, lng: 120.97, area: "Bacoor" },
-    { name: "PATTS College Paranaque", lat: 14.47, lng: 121.02, area: "Paranaque" },
-    { name: "Olivarez College Paranaque", lat: 14.47, lng: 121.02, area: "Paranaque" },
-    { name: "San Beda Alabang", lat: 14.42, lng: 121.03, area: "Muntinlupa" },
-    { name: "De La Salle Zobel Alabang", lat: 14.41, lng: 121.03, area: "Muntinlupa" },
+  { name: "Caloocan City Science High", lat: 14.65, lng: 120.98, area: "Caloocan - School" },
+  { name: "University of Caloocan City", lat: 14.65, lng: 120.98, area: "Caloocan - School" },
+  { name: "Arellano University Malabon", lat: 14.66, lng: 120.95, area: "Malabon - School" },
+  { name: "Pamantasan ng Lungsod ng Valenzuela", lat: 14.7, lng: 120.98, area: "Valenzuela - School" },
 ];
