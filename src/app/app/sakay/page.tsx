@@ -2,6 +2,8 @@
 import { useState, useMemo, useEffect, type CSSProperties } from "react";
 import { useMap } from "react-leaflet";
 import dynamic from "next/dynamic";
+import PSGCLocationSearch from "@/components/PSGCLocationSearch";
+import type { PSGCResult } from "@/lib/psgc-api";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((m) => m.TileLayer), { ssr: false });
@@ -165,6 +167,8 @@ export default function SakayPage() {
   const [to, setTo] = useState("");
   const [beginnerMode, setBeginnerMode] = useState(true);
   const [guideLanguage, setGuideLanguage] = useState<"tl" | "en">("tl");
+  const [fromPSGC, setFromPSGC] = useState<PSGCResult | null>(null);
+  const [toPSGC, setToPSGC] = useState<PSGCResult | null>(null);
 
   // GPS is requested only after the commuter presses the location button.
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
@@ -317,6 +321,47 @@ export default function SakayPage() {
           )}
         </div>
       </section>
+
+      <section style={{
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+  gap: 16,
+  padding: 18,
+  border: "1px solid #dbeafe",
+  borderRadius: 18,
+  background: "#f8fbff",
+  marginBottom: 18
+}}>
+  <div>
+    <label style={{ display: "block", fontWeight: 700, marginBottom: 8, fontSize: 13 }}>
+      🇵🇭 SEARCH PHILIPPINE ORIGIN
+    </label>
+    <PSGCLocationSearch
+      placeholder="Search city, municipality, barangay..."
+      onSelect={(location) => setFromPSGC(location)}
+    />
+    {fromPSGC && (
+      <p style={{ fontSize: 12, color: "#006747" }}>
+        Selected: {fromPSGC.fullName}
+      </p>
+    )}
+  </div>
+
+  <div>
+    <label style={{ display: "block", fontWeight: 700, marginBottom: 8, fontSize: 13 }}>
+      🇵🇭 SEARCH PHILIPPINE DESTINATION
+    </label>
+    <PSGCLocationSearch
+      placeholder="Search city, municipality, barangay..."
+      onSelect={(location) => setToPSGC(location)}
+    />
+    {toPSGC && (
+      <p style={{ fontSize: 12, color: "#006747" }}>
+        Selected: {toPSGC.fullName}
+      </p>
+    )}
+  </div>
+</section>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: "#64748b" }}>
