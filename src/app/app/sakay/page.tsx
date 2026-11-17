@@ -121,31 +121,35 @@ const TRANSFERS: [string, string][] = [
   ["EDSA Busway:PITX", "LRT-1:PITX"],
 ];
 
-const VERIFIED_ROUTES: VerifiedRoute[] = [];
-
-function buildPossibleRoute(fromName: string, toName: string): VerifiedRoute | null {
-  const start = PLACE_STATION[fromName];
-  const end = PLACE_STATION[toName];
-  if (!start || !end) return null;
-  if (start === end) {
-    const station = start.slice(start.indexOf(":") + 1);
-    const sourceUrl = start.startsWith("MRT-3:") ? "https://www.dotrmrt3.gov.ph/about-us" : "https://www.lrta.gov.ph/railway-operations/";
-    return {
-      id: `possible-walk-${fromName}-${toName}`,
-      from: fromName,
-      to: toName,
-      mode: "Walking / local connection",
-      vehicle: "Walk; no train ride suggested",
-      boardingPoint: `${station} area (approximate landmark association)`,
-      alightingPoint: `Walk to ${toName}`,
-      instructionsTl: [`Ang ${fromName} at ${toName} ay naka-associate sa parehong ${station} station area. Hindi ibig sabihin nito na kailangan sumakay ng tren.`, "Sundin ang pedestrian signs at magtanong sa guard kung saan ang ligtas na daan. Hindi pa verified ang eksaktong walking path o distansya."],
-      instructionsEn: [`${fromName} and ${toName} are associated with the same ${station} station area. This does not mean you need to take a train.`, "Follow pedestrian signs and ask security for a safe walking route. The exact walking path and distance have not been verified."],
-      sourceName: "Approximate landmark-to-station association; pedestrian route not verified",
-      sourceUrl,
-      checkedOn: "11 Nov 2026",
-      confidence: "possible",
-    };
-  }
+const VERIFIED_ROUTES: VerifiedRoute[] = [
+  {
+    id: "sm-north-to-sm-megamall",
+    from: "SM North EDSA",
+    to: "SM Megamall",
+    mode: "MRT-3",
+    vehicle: "MRT-3 Train",
+    boardingPoint: "MRT-3 North Avenue Station",
+    alightingPoint: "MRT-3 Ortigas Station",
+    instructionsTl: [
+      "Pumunta sa MRT-3 North Avenue Station.",
+      "Sumakay ng southbound train na papuntang Taft Avenue.",
+      "Bumaba sa MRT-3 Ortigas Station.",
+      "Mula sa Ortigas Station, sundan ang pedestrian signs papuntang SM Megamall.",
+      "Magtanong sa station staff o guard para makumpirma ang tamang exit at walking direction."
+    ],
+    instructionsEn: [
+      "Go to MRT-3 North Avenue Station.",
+      "Board the southbound train bound for Taft Avenue.",
+      "Get off at MRT-3 Ortigas Station.",
+      "From Ortigas Station, follow pedestrian signs toward SM Megamall.",
+      "Ask station staff or security to confirm the correct exit and walking direction."
+    ],
+    sourceName: "DOTr-MRT3",
+    sourceUrl: "https://www.dotrmrt3.gov.ph/",
+    checkedOn: "17 Nov 2026",
+    confidence: "verified",
+  },
+];
 
   const graph = new Map<string, string[]>();
   const addEdge = (a: string, b: string) => {
@@ -275,14 +279,17 @@ export default function SakayPage() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, [from, to, fromPlace, toPlace]);
 
-  const routes = useMemo(() => {
-    const exactVerified = VERIFIED_ROUTES.filter(
-      (route) => route.from.toLowerCase() === from.toLowerCase() && route.to.toLowerCase() === to.toLowerCase()
-    );
-    if (exactVerified.length) return exactVerified;
-    const possible = buildPossibleRoute(from, to);
-    return possible ? [possible] : [];
-  }, [from, to]);
+  
+const routes = useMemo(() => {
+  if (!from || !to || from === to) return [];
+
+  return VERIFIED_ROUTES.filter(
+    (route) =>
+      route.from.toLowerCase() === from.toLowerCase() &&
+      route.to.toLowerCase() === to.toLowerCase()
+  );
+}, [from, to]);
+
 
   const center: [number, number] = fromPlace && toPlace
     ? [(fromPlace.lat + toPlace.lat) / 2, (fromPlace.lng + toPlace.lng) / 2]
